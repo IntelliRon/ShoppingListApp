@@ -15,7 +15,7 @@ App/
 ├── app/
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com/yourcompany/shoppinglist/
+│   │   │   ├── java/com/intelliron/shoppinglist/
 │   │   │   │   ├── MainActivity.kt
 │   │   │   │   ├── ui/
 │   │   │   │   ├── data/
