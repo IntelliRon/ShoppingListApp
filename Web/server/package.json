@@ -9,7 +9,7 @@
 		"test": "jest --passWithNoTests",
 		"test:unit": "jest tests/unit --passWithNoTests",
 		"test:integration": "jest tests/integration --passWithNoTests",
-		"test:coverage": "jest --coverage",
+		"test:coverage": "jest --coverage --passWithNoTests",
 		"lint": "eslint src/**/*.js --no-error-on-unmatched-pattern",
 		"lint:fix": "eslint src/**/*.js --fix --no-error-on-unmatched-pattern"
 	},
