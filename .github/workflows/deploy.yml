@@ -3,10 +3,61 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        working-directory: Web/server
+        run: npm install
+      
+      - name: Run tests
+        working-directory: Web/server
+        run: npm test
+  
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Semantic Release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v3
+        with:
+          dry_run: false
+          branches: |
+            [
+              'master'
+            ]
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
   deploy:
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
     runs-on: ubuntu-latest
     environment: production
     
@@ -33,7 +84,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            github.rest.repos.createCommitStatus({
+            await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.sha,
@@ -41,3 +92,70 @@ jobs:
               context: 'Deployment to Production',
               target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
             });
+  
+  build-apk:
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      # Note: This job requires the Gradle wrapper (App/gradlew, App/gradlew.bat, App/gradle/wrapper/)
+      # to be committed to the repository. Generate with: cd App && gradle wrapper --gradle-version=8.9 && cd ..
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+      
+      - name: Decode keystore
+        if: secrets.KEYSTORE_BASE64 != ''
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > App/release.keystore
+      
+      - name: Build signed APK
+        if: secrets.KEYSTORE_BASE64 != ''
+        working-directory: App
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=release.keystore \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEYSTORE_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEYSTORE_ALIAS_PASSWORD }}
+      
+      - name: Build unsigned APK (if no keystore)
+        if: secrets.KEYSTORE_BASE64 == ''
+        working-directory: App
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
+      
+      - name: Determine APK filename
+        id: apk
+        run: |
+          if [ -f "App/app/build/outputs/apk/release/app-release.apk" ]; then
+            echo "apk_file=App/app/build/outputs/apk/release/app-release.apk" >> $GITHUB_OUTPUT
+          elif [ -f "App/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            echo "apk_file=App/app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
+          else
+            echo "APK not found"
+            exit 1
+          fi
+      
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ steps.apk.outputs.apk_file }}
+          tag_name: v${{ needs.release.outputs.new_release_version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+

@@ -2,7 +2,6 @@
 node_modules/
 npm-debug.log
 yarn-error.log
-package-lock.json
 yarn.lock
 
 # Environment
@@ -25,9 +24,16 @@ out/
 *.jar
 *.apk
 
+# Keystore files (secrets)
+*.keystore
+*.jks
+
 # Test coverage
 coverage/
 .nyc_output/
+
+# Gradle build cache (machine-specific)
+App/.gradle/
 
 # Database
 Web/server/db/users.csv
@@ -38,3 +44,4 @@ Web/server/db/shopping-lists/
 # OS
 Thumbs.db
 .DS_Store
+

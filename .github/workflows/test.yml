@@ -2,9 +2,9 @@ name: Run Tests
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master, develop ]
   push:
-    branches: [ main, develop ]
+    branches: [ master, develop ]
 
 jobs:
   test:
@@ -18,16 +18,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: 'Web/server/package-lock.json'
       
       - name: Install dependencies
         working-directory: Web/server
         run: npm ci
-      
-      - name: Run linter
-        working-directory: Web/server
-        run: npm run lint
       
       - name: Run unit tests
         working-directory: Web/server
@@ -41,9 +35,39 @@ jobs:
         working-directory: Web/server
         run: npm run test:coverage
       
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
+      - name: Post coverage to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
         with:
-          files: ./Web/server/coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = './Web/server/coverage/coverage-summary.json';
+            if (!fs.existsSync(path)) {
+              console.log('Coverage report not found');
+              return;
+            }
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const total = data.total;
+            const comment = `## Coverage Report\n| Metric | Percentage |\n|--------|------------|\n| Statements | ${total.statements.pct}% |\n| Branches | ${total.branches.pct}% |\n| Functions | ${total.functions.pct}% |\n| Lines | ${total.lines.pct}% |`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            const bot = comments.find(c => c.user.type === 'Bot' && c.body.includes('Coverage Report'));
+            if (bot) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: bot.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }

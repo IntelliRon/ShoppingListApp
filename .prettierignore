@@ -1,0 +1,12 @@
+node_modules
+dist
+build
+target
+*.apk
+*.keystore
+*.jks
+.gradle
+App/.gradle
+Web/server/coverage
+Web/server/node_modules
+Web/developer-ui/node_modules

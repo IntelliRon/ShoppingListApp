@@ -2,9 +2,9 @@ name: Lint Code
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master, develop ]
   push:
-    branches: [ main, develop ]
+    branches: [ master, develop ]
 
 jobs:
   lint:
@@ -18,8 +18,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: 'Web/server/package-lock.json'
       
       - name: Install dependencies
         working-directory: Web/server
