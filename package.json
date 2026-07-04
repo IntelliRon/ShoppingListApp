@@ -1,0 +1,12 @@
+{
+  "name": "shopping-list-app",
+  "version": "0.0.1",
+  "description": "Shopping List App - Cross-platform application",
+  "private": true,
+  "devDependencies": {
+    "semantic-release": "^21.0.0",
+    "@semantic-release/commit-analyzer": "^11.0.0",
+    "@semantic-release/release-notes-generator": "^12.0.0",
+    "@semantic-release/github": "^9.0.0"
+  }
+}

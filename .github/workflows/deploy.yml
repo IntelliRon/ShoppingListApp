@@ -6,7 +6,58 @@ on:
       - main
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'Web/server/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: Web/server
+        run: npm ci
+      
+      - name: Run tests
+        working-directory: Web/server
+        run: npm test
+  
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Semantic Release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v3
+        with:
+          dry_run: false
+          branches: |
+            [
+              'main'
+            ]
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
   deploy:
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
     runs-on: ubuntu-latest
     environment: production
     
@@ -41,3 +92,36 @@ jobs:
               context: 'Deployment to Production',
               target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
             });
+  
+  build-apk:
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+      
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+      
+      - name: Build APK
+        working-directory: App
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
+      
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: App/app/build/outputs/apk/release/app-release.apk
+          tag_name: v${{ needs.release.outputs.new_release_version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
