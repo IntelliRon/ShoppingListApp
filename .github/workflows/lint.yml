@@ -21,7 +21,7 @@ jobs:
       
       - name: Install dependencies
         working-directory: Web/server
-        run: npm install
+        run: npm ci
       
       - name: Run ESLint
         working-directory: Web/server

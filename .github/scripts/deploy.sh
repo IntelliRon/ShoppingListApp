@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-PROJECT_DIR="/path/to/ShoppingListApp"
+# Get the script's directory and use it as project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 API_NAME="shopping-list-api"
 
 echo "[$(date)] Starting deployment..."

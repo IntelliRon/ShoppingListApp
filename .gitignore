@@ -32,6 +32,9 @@ out/
 coverage/
 .nyc_output/
 
+# Gradle build cache (machine-specific)
+App/.gradle/
+
 # Database
 Web/server/db/users.csv
 Web/server/db/sessions.csv
