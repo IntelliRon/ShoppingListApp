@@ -138,10 +138,22 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleRelease
       
+      - name: Determine APK filename
+        id: apk
+        run: |
+          if [ -f "App/app/build/outputs/apk/release/app-release.apk" ]; then
+            echo "apk_file=App/app/build/outputs/apk/release/app-release.apk" >> $GITHUB_OUTPUT
+          elif [ -f "App/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            echo "apk_file=App/app/build/outputs/apk/release/app-release-unsigned.apk" >> $GITHUB_OUTPUT
+          else
+            echo "APK not found"
+            exit 1
+          fi
+      
       - name: Upload APK to Release
         uses: softprops/action-gh-release@v1
         with:
-          files: App/app/build/outputs/apk/release/app-release.apk
+          files: ${{ steps.apk.outputs.apk_file }}
           tag_name: v${{ needs.release.outputs.new_release_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
