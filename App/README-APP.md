@@ -117,17 +117,21 @@ Configure in `data/local/SessionManager.kt`:
 
 ## Deployment
 
-### Release Build
+### Build APK for Manual Installation
 
 ```bash
-# Generate signed APK for Play Store
-./gradlew bundleRelease
+# Generate release APK
+./gradlew assembleRelease
 ```
 
-Requires:
-- Signing keystore
-- Play Store account
-- App Store listing
+The APK will be located at `app/build/outputs/apk/release/app-release.apk`
+
+To install on a device or emulator:
+```bash
+adb install app/build/outputs/apk/release/app-release.apk
+```
+
+**Note:** Release builds require a signing key. Android Studio will prompt you to create one on first release build, or configure it in `app/build.gradle`.
 
 ## Troubleshooting
 
