@@ -3,7 +3,7 @@ name: Deploy to Production
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   test:
@@ -50,7 +50,7 @@ jobs:
           dry_run: false
           branches: |
             [
-              'main'
+              'master'
             ]
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

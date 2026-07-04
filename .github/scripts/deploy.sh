@@ -10,7 +10,7 @@ echo "[$(date)] Starting deployment..."
 cd "$PROJECT_DIR"
 
 # Fetch latest code
-git pull origin main
+git pull origin master
 
 # Install/update dependencies
 npm install --production --prefix Web/server
