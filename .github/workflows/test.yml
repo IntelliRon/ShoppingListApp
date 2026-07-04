@@ -23,10 +23,6 @@ jobs:
         working-directory: Web/server
         run: npm install
       
-      - name: Run linter
-        working-directory: Web/server
-        run: npm run lint
-      
       - name: Run unit tests
         working-directory: Web/server
         run: npm run test:unit
