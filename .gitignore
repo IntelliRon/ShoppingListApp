@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build outputs
+dist/
+build/
+out/
+*.jar
+*.apk
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Database
+Web/server/db/users.csv
+Web/server/db/sessions.csv
+Web/server/db/shopping-lists/
+!Web/server/db/.gitkeep
+
+# OS
+Thumbs.db
+.DS_Store
