@@ -7,6 +7,10 @@ const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const config = require("./config/defaults.json");
+const csvService = require("./services/csvService");
+
+// Initialize database on startup
+csvService.initializeDatabase();
 
 const app = express();
 
@@ -74,8 +78,8 @@ app.get("/api/v1/health", (req, res) => {
 });
 
 // Routes
-// TODO: Add API routes as implemented in Phase 1+
-// app.use('/api/v1/auth', require('./routes/auth'));
+app.use("/api/v1/auth", require("./routes/auth"));
+// TODO: Add remaining routes as implemented in Phase 2+
 // app.use('/api/v1/lists', require('./routes/lists'));
 // app.use('/api/v1/sync', require('./routes/sync'));
 

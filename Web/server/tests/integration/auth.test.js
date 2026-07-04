@@ -1,0 +1,223 @@
+/**
+ * Authentication API Integration Tests
+ * Tests the full API flow with real CSV files (in temp directory)
+ */
+
+const request = require("supertest");
+const app = require("../../src/app");
+const path = require("path");
+const fs = require("fs");
+const csvService = require("../../src/services/csvService");
+
+// Test constants
+const TEST_USER = {
+	username: "testuser",
+	password: "testPassword123",
+};
+
+const USERS_FILE = path.join(
+	__dirname,
+	"../../",
+	require("../../src/config/defaults.json").database.users_file
+);
+
+describe("Authentication API", () => {
+	beforeAll(() => {
+		// Ensure test database directory exists
+		const dbDir = path.dirname(USERS_FILE);
+		if (!fs.existsSync(dbDir)) {
+			fs.mkdirSync(dbDir, { recursive: true });
+		}
+	});
+
+	afterAll(() => {
+		// Clean up test files
+		try {
+			if (fs.existsSync(USERS_FILE)) {
+				fs.unlinkSync(USERS_FILE);
+			}
+		} catch (error) {
+			console.log("Cleanup note:", error.message);
+		}
+	});
+
+	describe("POST /api/v1/auth/register", () => {
+		it("should register a new user", async () => {
+			const response = await request(app).post("/api/v1/auth/register").send(TEST_USER);
+
+			expect(response.status).toBe(201);
+			expect(response.body.success).toBe(true);
+			expect(response.body.data).toHaveProperty("user_id");
+			expect(response.body.data).toHaveProperty("username", TEST_USER.username);
+			expect(response.body.data).toHaveProperty("token");
+			expect(response.body.data).toHaveProperty("created_at");
+		});
+
+		it("should reject duplicate username", async () => {
+			const response = await request(app).post("/api/v1/auth/register").send(TEST_USER);
+
+			expect(response.status).toBe(409);
+			expect(response.body.success).toBe(false);
+			expect(response.body.error.code).toBe("CONFLICT");
+		});
+
+		it("should reject invalid username", async () => {
+			const response = await request(app).post("/api/v1/auth/register").send({
+				username: "ab",
+				password: "validPassword123",
+			});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+			expect(response.body.error.code).toBe("VALIDATION_ERROR");
+		});
+
+		it("should reject invalid password", async () => {
+			const response = await request(app).post("/api/v1/auth/register").send({
+				username: "newuser",
+				password: "short",
+			});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+			expect(response.body.error.code).toBe("VALIDATION_ERROR");
+		});
+
+		it("should reject missing credentials", async () => {
+			const response = await request(app).post("/api/v1/auth/register").send({});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+	});
+
+	describe("POST /api/v1/auth/login", () => {
+		it("should login with correct credentials", async () => {
+			const response = await request(app).post("/api/v1/auth/login").send(TEST_USER);
+
+			expect(response.status).toBe(200);
+			expect(response.body.success).toBe(true);
+			expect(response.body.data).toHaveProperty("user_id");
+			expect(response.body.data).toHaveProperty("username", TEST_USER.username);
+			expect(response.body.data).toHaveProperty("token");
+		});
+
+		it("should reject incorrect password", async () => {
+			const response = await request(app).post("/api/v1/auth/login").send({
+				username: TEST_USER.username,
+				password: "wrongPassword",
+			});
+
+			expect(response.status).toBe(401);
+			expect(response.body.success).toBe(false);
+			expect(response.body.error.code).toBe("UNAUTHORIZED");
+		});
+
+		it("should reject nonexistent user", async () => {
+			const response = await request(app).post("/api/v1/auth/login").send({
+				username: "nonexistent",
+				password: "anyPassword123",
+			});
+
+			expect(response.status).toBe(401);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should reject missing credentials", async () => {
+			const response = await request(app).post("/api/v1/auth/login").send({});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+	});
+
+	describe("POST /api/v1/auth/logout", () => {
+		let authToken = "";
+
+		beforeAll(async () => {
+			// Get a valid token
+			const response = await request(app).post("/api/v1/auth/login").send(TEST_USER);
+			authToken = response.body.data.token;
+		});
+
+		it("should logout successfully with valid token", async () => {
+			const response = await request(app)
+				.post("/api/v1/auth/logout")
+				.set("Authorization", `Bearer ${authToken}`);
+
+			expect(response.status).toBe(200);
+			expect(response.body.success).toBe(true);
+		});
+
+		it("should reject logout without token", async () => {
+			const response = await request(app).post("/api/v1/auth/logout");
+
+			expect(response.status).toBe(401);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should reject logout with invalid token", async () => {
+			const response = await request(app)
+				.post("/api/v1/auth/logout")
+				.set("Authorization", "Bearer invalid.token.here");
+
+			expect(response.status).toBe(401);
+			expect(response.body.success).toBe(false);
+		});
+	});
+
+	describe("POST /api/v1/auth/change-password", () => {
+		let authToken = "";
+		const NEW_PASSWORD = "newPassword456";
+
+		beforeAll(async () => {
+			// Get a valid token
+			const response = await request(app).post("/api/v1/auth/login").send(TEST_USER);
+			authToken = response.body.data.token;
+		});
+
+		it("should change password successfully", async () => {
+			const response = await request(app)
+				.post("/api/v1/auth/change-password")
+				.set("Authorization", `Bearer ${authToken}`)
+				.send({
+					old_password: TEST_USER.password,
+					new_password: NEW_PASSWORD,
+				});
+
+			expect(response.status).toBe(200);
+			expect(response.body.success).toBe(true);
+
+			// Verify new password works
+			const loginResponse = await request(app).post("/api/v1/auth/login").send({
+				username: TEST_USER.username,
+				password: NEW_PASSWORD,
+			});
+
+			expect(loginResponse.status).toBe(200);
+		});
+
+		it("should reject wrong old password", async () => {
+			const response = await request(app)
+				.post("/api/v1/auth/change-password")
+				.set("Authorization", `Bearer ${authToken}`)
+				.send({
+					old_password: "wrongPassword",
+					new_password: "anotherPassword789",
+				});
+
+			expect(response.status).toBe(401);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should reject change without token", async () => {
+			const response = await request(app).post("/api/v1/auth/change-password").send({
+				old_password: NEW_PASSWORD,
+				new_password: "anotherPassword789",
+			});
+
+			expect(response.status).toBe(401);
+			expect(response.body.success).toBe(false);
+		});
+	});
+});
