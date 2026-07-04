@@ -25,6 +25,10 @@ out/
 *.jar
 *.apk
 
+# Keystore files (secrets)
+*.keystore
+*.jks
+
 # Test coverage
 coverage/
 .nyc_output/
@@ -38,3 +42,4 @@ Web/server/db/shopping-lists/
 # OS
 Thumbs.db
 .DS_Store
+

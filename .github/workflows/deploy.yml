@@ -111,7 +111,24 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
       
-      - name: Build APK
+      - name: Decode keystore
+        if: secrets.KEYSTORE_BASE64 != ''
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > App/release.keystore
+      
+      - name: Build signed APK
+        if: secrets.KEYSTORE_BASE64 != ''
+        working-directory: App
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=release.keystore \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEYSTORE_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEYSTORE_ALIAS_PASSWORD }}
+      
+      - name: Build unsigned APK (if no keystore)
+        if: secrets.KEYSTORE_BASE64 == ''
         working-directory: App
         run: |
           chmod +x ./gradlew
@@ -124,4 +141,5 @@ jobs:
           tag_name: v${{ needs.release.outputs.new_release_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
