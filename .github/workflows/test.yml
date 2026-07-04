@@ -43,50 +43,31 @@ jobs:
           script: |
             const fs = require('fs');
             const path = './Web/server/coverage/coverage-summary.json';
-            
             if (!fs.existsSync(path)) {
-              console.log('Coverage report not found, skipping comment');
+              console.log('Coverage report not found');
               return;
             }
-            
-            const coverage = fs.readFileSync(path, 'utf8');
-            const data = JSON.parse(coverage);
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
             const total = data.total;
-            
-            const comment = `## Test Coverage Report
-
-| Metric | Coverage |
-|--------|----------|
-| Statements | ${total.statements.pct}% |
-| Branches | ${total.branches.pct}% |
-| Functions | ${total.functions.pct}% |
-| Lines | ${total.lines.pct}% |
-
-✅ All tests passed`;
-            
-            // Find existing coverage comment to update
+            const comment = `## Coverage Report\n| Metric | Percentage |\n|--------|------------|\n| Statements | ${total.statements.pct}% |\n| Branches | ${total.branches.pct}% |\n| Functions | ${total.functions.pct}% |\n| Lines | ${total.lines.pct}% |`;
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number
             });
-            
-            const existingComment = comments.find(comment => 
-              comment.user.type === 'Bot' && comment.body.includes('Test Coverage Report')
-            );
-            
-            if (existingComment) {
+            const bot = comments.find(c => c.user.type === 'Bot' && c.body.includes('Coverage Report'));
+            if (bot) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: existingComment.id,
+                comment_id: bot.id,
                 body: comment
               });
             } else {
               await github.rest.issues.createComment({
-                issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
+                issue_number: context.issue.number,
                 body: comment
               });
             }
