@@ -84,7 +84,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            github.rest.repos.createCommitStatus({
+            await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: context.sha,
@@ -104,6 +104,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
+      # Note: This job requires the Gradle wrapper (App/gradlew, App/gradlew.bat, App/gradle/wrapper/)
+      # to be committed to the repository. Generate with: cd App && gradle wrapper --gradle-version=8.9 && cd ..
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
