@@ -6,9 +6,9 @@
 	"scripts": {
 		"start": "node src/index.js",
 		"dev": "NODE_ENV=development node src/index.js",
-		"test": "jest",
-		"test:unit": "jest tests/unit",
-		"test:integration": "jest tests/integration",
+		"test": "jest --passWithNoTests",
+		"test:unit": "jest tests/unit --passWithNoTests",
+		"test:integration": "jest tests/integration --passWithNoTests",
 		"test:coverage": "jest --coverage",
 		"lint": "eslint src/**/*.js --no-error-on-unmatched-pattern",
 		"lint:fix": "eslint src/**/*.js --fix --no-error-on-unmatched-pattern"

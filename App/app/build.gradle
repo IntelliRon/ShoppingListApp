@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
+    id 'kotlin-kapt'
     id 'dagger.hilt.android.plugin'
 }
 
@@ -19,7 +20,7 @@ android {
 
     signingConfigs {
         release {
-            storeFile file("release.keystore")
+            storeFile file("../release.keystore")
             storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
             keyAlias System.getenv("KEYSTORE_ALIAS") ?: ""
             keyPassword System.getenv("KEYSTORE_ALIAS_PASSWORD") ?: ""

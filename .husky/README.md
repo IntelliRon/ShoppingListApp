@@ -14,13 +14,13 @@ This runs the `prepare` script in package.json, which calls `husky install`.
 
 ## What Gets Formatted
 
-- **JavaScript files** (.js) - ESLint fixes + Prettier formatting
+- **JavaScript files** (.js) - Prettier formatting
 - **JSON files** (.json) - Prettier formatting
 - **HTML files** (.html) - Prettier formatting
 - **CSS files** (.css) - Prettier formatting
 - **Markdown files** (.md) - Prettier formatting
-- **Kotlin files** (.kt) - ktlint formatting (requires ktlint to be installed)
-- **Gradle files** (.gradle) - Prettier formatting
+
+**Note:** Kotlin and Gradle formatting is not currently supported by the repo's tooling setup. These files should be formatted manually or with IDE integration.
 
 ## Configuration Files
 
@@ -37,9 +37,10 @@ To format all files without committing:
 npm run format
 ```
 
-To lint and fix JavaScript:
+To lint and fix JavaScript in the backend:
 
 ```bash
+cd Web/server
 npm run lint:fix
 ```
 
