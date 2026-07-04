@@ -53,7 +53,7 @@ jobs:
             const total = data.total;
             
             const comment = `## Test Coverage Report
-            
+
 | Metric | Coverage |
 |--------|----------|
 | Statements | ${total.statements.pct}% |
