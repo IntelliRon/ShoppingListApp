@@ -41,9 +41,31 @@ jobs:
         working-directory: Web/server
         run: npm run test:coverage
       
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
+      - name: Post coverage to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
         with:
-          files: ./Web/server/coverage/lcov.info
-          flags: unittests
-          name: codecov-umbrella
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const coverage = fs.readFileSync('./Web/server/coverage/coverage-summary.json', 'utf8');
+            const data = JSON.parse(coverage);
+            const total = data.total;
+            
+            const comment = `## Test Coverage Report
+            
+| Metric | Coverage |
+|--------|----------|
+| Statements | ${total.statements.pct}% |
+| Branches | ${total.branches.pct}% |
+| Functions | ${total.functions.pct}% |
+| Lines | ${total.lines.pct}% |
+
+✅ All tests passed`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
