@@ -12,6 +12,7 @@ jest.mock("../../src/services/csvService", () => ({
 	appendCSV: jest.fn(),
 	appendWithDuplicateCheck: jest.fn(),
 	updateRecords: jest.fn(),
+	updateRecordsWithVerify: jest.fn(),
 }));
 
 describe("AuthService", () => {
@@ -337,27 +338,48 @@ describe("AuthService", () => {
 			const newPassword = "newPassword456";
 			const oldHash = await authService.hashPassword(oldPassword);
 
-			csvService.findRecord.mockImplementationOnce(async () => ({
-				user_id: "u_123",
-				username: "john_doe",
-				password_hash: oldHash,
-			}));
-			csvService.updateRecords.mockImplementationOnce(async () => {});
+			csvService.updateRecordsWithVerify.mockImplementationOnce(
+				async (filePath, operation) => {
+					const records = [
+						{
+							user_id: "u_123",
+							username: "john_doe",
+							password_hash: oldHash,
+						},
+					];
+					const result = await operation(records);
+					if (!result.verified) {
+						throw new Error(result.error);
+					}
+					return result;
+				}
+			);
 
 			await authService.changePassword("u_123", oldPassword, newPassword);
 
-			expect(csvService.updateRecords).toHaveBeenCalled();
+			expect(csvService.updateRecordsWithVerify).toHaveBeenCalled();
 		});
 
 		it("should reject if old password is incorrect", async () => {
 			const oldPassword = "oldPassword123";
 			const hash = await authService.hashPassword(oldPassword);
 
-			csvService.findRecord.mockImplementationOnce(async () => ({
-				user_id: "u_123",
-				username: "john_doe",
-				password_hash: hash,
-			}));
+			csvService.updateRecordsWithVerify.mockImplementationOnce(
+				async (filePath, operation) => {
+					const records = [
+						{
+							user_id: "u_123",
+							username: "john_doe",
+							password_hash: hash,
+						},
+					];
+					const result = await operation(records);
+					if (!result.verified) {
+						throw new Error(result.error);
+					}
+					return result;
+				}
+			);
 
 			try {
 				await authService.changePassword("u_123", "wrongPassword", "newPassword456");
@@ -368,7 +390,15 @@ describe("AuthService", () => {
 		});
 
 		it("should reject if user not found", async () => {
-			csvService.findRecord.mockImplementationOnce(async () => null);
+			csvService.updateRecordsWithVerify.mockImplementationOnce(
+				async (filePath, operation) => {
+					const result = await operation([]);
+					if (!result.verified) {
+						throw new Error(result.error);
+					}
+					return result;
+				}
+			);
 
 			try {
 				await authService.changePassword(

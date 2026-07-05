@@ -7,11 +7,8 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 
-// Create temp directory for test files BEFORE requiring the app
-const TEST_DIR = path.join(os.tmpdir(), "shopping-list-api-test");
-if (!fs.existsSync(TEST_DIR)) {
-	fs.mkdirSync(TEST_DIR, { recursive: true });
-}
+// Create a unique temp directory for this test run to avoid flakiness with parallel tests
+const TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "shopping-list-api-test-"));
 
 // Set environment variable to use temp directory for tests
 const TEST_USERS_FILE = path.join(TEST_DIR, "users.csv");

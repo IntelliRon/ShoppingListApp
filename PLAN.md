@@ -1276,7 +1276,7 @@ npm run test:coverage      # Generate coverage report
 Tests automatically run on:
 
 - Pull request creation
-- Push to main branch
+- Push to master branch
 - Before deployment
 
 ---
@@ -1306,7 +1306,7 @@ ShoppingListApp/
 Triggers on:
 
 - Pull requests
-- Push to `main` and `develop` branches
+- Push to `master` and `develop` branches
 
 Steps:
 
@@ -1326,7 +1326,7 @@ Steps:
 
 #### 3. Deployment Workflow (deploy.yml)
 
-Automated deployment via GitHub Actions SSH (triggers on push to `main` branch)
+Automated deployment via GitHub Actions SSH (triggers on push to `master` branch)
 
 **Workflow Steps:**
 
@@ -1529,10 +1529,10 @@ jobs:
 
 **Deployment Flow:**
 
-1. Developer pushes code to `main` branch
+1. Developer pushes code to `master` branch
 2. GitHub Actions automatically triggers `deploy.yml` workflow
 3. Workflow uses SSH to connect to your server
-4. Server pulls latest code from `main` branch
+4. Server pulls latest code from `master` branch
 5. Deployment script (from repo) executes: installs deps, restarts PM2
 6. Health check verifies API is responding
 7. Deployment status posted back to GitHub commit
@@ -1549,7 +1549,7 @@ jobs:
 
 ### Branch Strategy
 
-- `main`: Production-ready code
+- `master`: Production-ready code (default branch)
 - `develop`: Integration branch
 - `feature/*`: Feature branches
 - `bugfix/*`: Bug fix branches

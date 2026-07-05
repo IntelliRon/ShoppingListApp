@@ -254,19 +254,7 @@ async function getUserById(userId) {
  * Change user password
  */
 async function changePassword(userId, oldPassword, newPassword) {
-	// Get user
-	const user = await csvService.findRecord(USERS_FILE, (u) => u.user_id === userId);
-	if (!user) {
-		throw new Error("User not found");
-	}
-
-	// Verify old password
-	const passwordMatch = await comparePassword(oldPassword, user.password_hash);
-	if (!passwordMatch) {
-		throw new Error("Current password is incorrect");
-	}
-
-	// Validate new password
+	// Validate new password first before performing read
 	const validation = validatePassword(newPassword);
 	if (!validation.valid) {
 		throw new Error(validation.error);
@@ -275,16 +263,32 @@ async function changePassword(userId, oldPassword, newPassword) {
 	// Hash new password
 	const newPasswordHash = await hashPassword(newPassword);
 
-	// Update user
-	await csvService.updateRecords(
-		USERS_FILE,
-		(u) => u.user_id === userId,
-		(u) => ({
-			...u,
-			password_hash: newPasswordHash,
-			updated_at: new Date().toISOString(),
-		})
-	);
+	// Perform atomic read-verify-update under file lock
+	await csvService.updateRecordsWithVerify(USERS_FILE, async (records) => {
+		// Find user and verify old password
+		const user = records.find((u) => u.user_id === userId);
+		if (!user) {
+			return { verified: false, error: "User not found" };
+		}
+
+		const passwordMatch = await comparePassword(oldPassword, user.password_hash);
+		if (!passwordMatch) {
+			return { verified: false, error: "Current password is incorrect" };
+		}
+
+		// Verification passed, return updated records
+		const updated = records.map((u) =>
+			u.user_id === userId
+				? {
+						...u,
+						password_hash: newPasswordHash,
+						updated_at: new Date().toISOString(),
+					}
+				: u
+		);
+
+		return { verified: true, updated };
+	});
 }
 
 module.exports = {

@@ -24,8 +24,9 @@ const activeOperations = new Map();
 
 /**
  * Enqueue an operation to execute after all previous writes complete
- * Chains the operation to the existing queue and updates the queue
- * Catches errors to prevent queue poisoning and ensure next operations run
+ * Uses non-poisoning queue-tail pattern: the map entry always resolves (never rejects)
+ * while the returned promise can reject, allowing subsequent operations to continue
+ * even after a failure and preventing queue orphaning
  * activeOperations is incremented when operation STARTS (not enqueued) to avoid race condition
  */
 function enqueueFileOperation(filePath, operation) {
@@ -33,50 +34,44 @@ function enqueueFileOperation(filePath, operation) {
 		writeQueues.set(filePath, Promise.resolve());
 	}
 
-	const currentQueue = writeQueues.get(filePath);
-	// Chain from .catch() to ensure new operation runs even after a prior failure
-	const newQueue = currentQueue
-		.then(() => {
-			// Mark operation as active (starts executing) - after prior operation completes
-			activeOperations.set(filePath, (activeOperations.get(filePath) || 0) + 1);
-			return operation();
-		})
-		.catch((error) => {
-			// After a failure, reset queue but rethrow to propagate to caller
-			writeQueues.delete(filePath);
-			throw error;
-		})
-		// Chain a handler that cleans up activeOperations and queue when done
-		.then(
+	const currentTail = writeQueues.get(filePath);
+
+	// Chain the operation, preserving errors for the caller
+	const operationChain = currentTail.then(() => {
+		// Mark operation as active (starts executing)
+		activeOperations.set(filePath, (activeOperations.get(filePath) || 0) + 1);
+		return operation().then(
 			(result) => {
-				// Decrement active operation count and cleanup
+				// Decrement active operation count on success
 				const count = (activeOperations.get(filePath) || 1) - 1;
 				if (count > 0) {
 					activeOperations.set(filePath, count);
 				} else {
 					activeOperations.delete(filePath);
-				}
-				// On success, check if queue is now idle and clean up the key
-				if (writeQueues.get(filePath) === newQueue) {
-					writeQueues.delete(filePath);
 				}
 				return result;
 			},
 			(error) => {
-				// Decrement active operation count and cleanup
+				// Decrement active operation count on failure
 				const count = (activeOperations.get(filePath) || 1) - 1;
 				if (count > 0) {
 					activeOperations.set(filePath, count);
 				} else {
 					activeOperations.delete(filePath);
 				}
-				// Error already handled above, just rethrow
 				throw error;
 			}
 		);
-	writeQueues.set(filePath, newQueue);
+	});
 
-	return newQueue;
+	// Create non-poisoning tail: always resolves to prevent blocking subsequent operations
+	// This is what gets stored in the map, ensuring the queue never becomes rejected
+	const newTail = operationChain.catch(() => undefined);
+
+	writeQueues.set(filePath, newTail);
+
+	// Return the operation chain to the caller (not the tail), so they get success/failure
+	return operationChain;
 }
 
 /**
@@ -385,6 +380,71 @@ async function appendWithDuplicateCheck(filePath, records, checks) {
 }
 
 /**
+ * Execute a custom read-verify-update operation atomically under file lock
+ * The operation function receives the full records and should return { verified: bool, updated: records[] }
+ * This ensures read, verification, and write all happen under the same lock
+ */
+function updateRecordsWithVerify(filePath, operation) {
+	return enqueueFileOperation(filePath, async () => {
+		const records = await readCSV(filePath);
+		const result = await operation(records);
+
+		if (!result.verified) {
+			throw new Error(result.error || "Verification failed");
+		}
+
+		// Write without re-enqueueing (already inside enqueued operation)
+		return new Promise((resolve, reject) => {
+			try {
+				ensureDir(path.dirname(filePath));
+
+				if (result.updated && result.updated.length > 0) {
+					// Write updated records
+					const csvHeaders = Object.keys(result.updated[0]).map((key) => ({
+						id: key,
+						title: key,
+					}));
+					const writer = createObjectCsvWriter({
+						path: filePath,
+						header: csvHeaders,
+					});
+
+					writer
+						.writeRecords(result.updated)
+						.then(() => resolve(result))
+						.catch(reject);
+				} else if (
+					records.length > 0 &&
+					result.updated !== undefined &&
+					result.updated.length === 0
+				) {
+					// If records were deleted but headers should remain
+					const headers = Object.keys(records[0]).map((key) => ({
+						id: key,
+						title: key,
+					}));
+					const csvHeaders = headers;
+					const writer = createObjectCsvWriter({
+						path: filePath,
+						header: csvHeaders,
+					});
+
+					writer
+						.writeRecords([])
+						.then(() => resolve(result))
+						.catch(reject);
+				} else {
+					// No write needed
+					resolve(result);
+				}
+			} catch (error) {
+				reject(error);
+			}
+		});
+	});
+}
+
+/**
  * Initialize database directory structure
  */
 function initializeDatabase() {
@@ -406,6 +466,7 @@ module.exports = {
 	findRecords,
 	findRecord,
 	updateRecords,
+	updateRecordsWithVerify,
 	deleteRecords,
 	ensureDir,
 	initializeDatabase,
