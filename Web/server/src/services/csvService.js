@@ -17,19 +17,19 @@ const config = require("../config/defaults.json");
 const writeQueues = new Map();
 
 /**
- * Acquire lock for file write operation
- * Returns a promise that resolves when write is complete
+ * Enqueue an operation to execute after all previous writes complete
+ * Chains the operation to the existing queue and updates the queue
  */
-function acquireWriteLock(filePath) {
+function enqueueFileOperation(filePath, operation) {
 	if (!writeQueues.has(filePath)) {
 		writeQueues.set(filePath, Promise.resolve());
 	}
 
 	const currentQueue = writeQueues.get(filePath);
-	const newQueue = currentQueue.then(() => new Promise((resolve) => setTimeout(resolve, 0)));
+	const newQueue = currentQueue.then(() => operation());
 	writeQueues.set(filePath, newQueue);
 
-	return currentQueue;
+	return newQueue;
 }
 
 /**
@@ -65,48 +65,98 @@ async function readCSV(filePath) {
  * Serializes concurrent writes to same file using single-writer pattern
  */
 async function writeCSV(filePath, records, headers = null) {
-	// Acquire write lock to ensure serial writes
-	await acquireWriteLock(filePath);
+	return enqueueFileOperation(filePath, async () => {
+		return new Promise((resolve, reject) => {
+			try {
+				ensureDir(path.dirname(filePath));
 
-	return new Promise((resolve, reject) => {
-		try {
-			ensureDir(path.dirname(filePath));
+				if (!records || records.length === 0) {
+					// Write file with headers only even if no records
+					// to ensure file is cleared/truncated properly
+					const csvHeaders = headers || [{ id: "id", title: "id" }];
 
-			if (!records || records.length === 0) {
-				resolve();
-				return;
+					const writer = createObjectCsvWriter({
+						path: filePath,
+						header: csvHeaders,
+					});
+
+					writer
+						.writeRecords([])
+						.then(() => resolve())
+						.catch(reject);
+					return;
+				}
+
+				// Determine headers from first record if not provided
+				const csvHeaders =
+					headers || Object.keys(records[0]).map((key) => ({ id: key, title: key }));
+
+				const writer = createObjectCsvWriter({
+					path: filePath,
+					header: csvHeaders,
+				});
+
+				writer
+					.writeRecords(records)
+					.then(() => resolve())
+					.catch(reject);
+			} catch (error) {
+				reject(error);
 			}
-
-			// Determine headers from first record if not provided
-			const csvHeaders =
-				headers || Object.keys(records[0]).map((key) => ({ id: key, title: key }));
-
-			const writer = createObjectCsvWriter({
-				path: filePath,
-				header: csvHeaders,
-			});
-
-			writer
-				.writeRecords(records)
-				.then(() => resolve())
-				.catch(reject);
-		} catch (error) {
-			reject(error);
-		}
+		});
 	});
 }
 
 /**
  * Append records to CSV file
+ * Entire read-modify-write operation is atomic (locked)
  */
 async function appendCSV(filePath, records) {
-	try {
-		const existing = await readCSV(filePath);
-		const updated = [...existing, ...records];
-		await writeCSV(filePath, updated);
-	} catch (error) {
-		throw new Error(`Failed to append to CSV: ${error.message}`);
-	}
+	return enqueueFileOperation(filePath, async () => {
+		try {
+			const existing = await readCSV(filePath);
+			const updated = [...existing, ...records];
+
+			// Re-use writeCSV internal logic but don't enqueue again
+			// since we're already inside an enqueued operation
+			return new Promise((resolve, reject) => {
+				try {
+					ensureDir(path.dirname(filePath));
+
+					if (!updated || updated.length === 0) {
+						const csvHeaders = [{ id: "id", title: "id" }];
+						const writer = createObjectCsvWriter({
+							path: filePath,
+							header: csvHeaders,
+						});
+						writer
+							.writeRecords([])
+							.then(() => resolve())
+							.catch(reject);
+						return;
+					}
+
+					const csvHeaders = Object.keys(updated[0]).map((key) => ({
+						id: key,
+						title: key,
+					}));
+					const writer = createObjectCsvWriter({
+						path: filePath,
+						header: csvHeaders,
+					});
+
+					writer
+						.writeRecords(updated)
+						.then(() => resolve())
+						.catch(reject);
+				} catch (error) {
+					reject(error);
+				}
+			});
+		} catch (error) {
+			throw new Error(`Failed to append to CSV: ${error.message}`);
+		}
+	});
 }
 
 /**
@@ -127,31 +177,87 @@ async function findRecord(filePath, filterFn) {
 
 /**
  * Update records in CSV file
+ * Entire read-modify-write operation is atomic (locked)
  */
 async function updateRecords(filePath, filterFn, updateFn) {
-	const records = await readCSV(filePath);
-	const updated = records.map((record) => {
-		if (filterFn(record)) {
-			return updateFn(record);
-		}
-		return record;
+	return enqueueFileOperation(filePath, async () => {
+		const records = await readCSV(filePath);
+		const updated = records.map((record) => {
+			if (filterFn(record)) {
+				return updateFn(record);
+			}
+			return record;
+		});
+
+		// Perform write without re-enqueueing
+		return new Promise((resolve, reject) => {
+			try {
+				ensureDir(path.dirname(filePath));
+
+				if (!updated || updated.length === 0) {
+					const csvHeaders = [{ id: "id", title: "id" }];
+					const writer = createObjectCsvWriter({
+						path: filePath,
+						header: csvHeaders,
+					});
+					writer
+						.writeRecords([])
+						.then(() => resolve(updated))
+						.catch(reject);
+					return;
+				}
+
+				const csvHeaders = Object.keys(updated[0]).map((key) => ({ id: key, title: key }));
+				const writer = createObjectCsvWriter({
+					path: filePath,
+					header: csvHeaders,
+				});
+
+				writer
+					.writeRecords(updated)
+					.then(() => resolve(updated))
+					.catch(reject);
+			} catch (error) {
+				reject(error);
+			}
+		});
 	});
-	await writeCSV(filePath, updated);
-	return updated;
 }
 
 /**
  * Delete records from CSV file
+ * Entire read-modify-write operation is atomic (locked)
  */
 async function deleteRecords(filePath, filterFn) {
-	const records = await readCSV(filePath);
-	const remaining = records.filter((record) => !filterFn(record));
-	if (remaining.length === 0) {
-		// Keep file with headers even if empty
-		await writeCSV(filePath, []);
-	} else {
-		await writeCSV(filePath, remaining);
-	}
+	return enqueueFileOperation(filePath, async () => {
+		const records = await readCSV(filePath);
+		const remaining = records.filter((record) => !filterFn(record));
+
+		// Perform write without re-enqueueing
+		return new Promise((resolve, reject) => {
+			try {
+				ensureDir(path.dirname(filePath));
+
+				// Always write the file to properly truncate/clear it
+				const csvHeaders =
+					remaining.length > 0
+						? Object.keys(remaining[0]).map((key) => ({ id: key, title: key }))
+						: [{ id: "id", title: "id" }];
+
+				const writer = createObjectCsvWriter({
+					path: filePath,
+					header: csvHeaders,
+				});
+
+				writer
+					.writeRecords(remaining)
+					.then(() => resolve())
+					.catch(reject);
+			} catch (error) {
+				reject(error);
+			}
+		});
+	});
 }
 
 /**

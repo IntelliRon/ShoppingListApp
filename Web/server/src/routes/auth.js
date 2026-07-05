@@ -18,21 +18,21 @@ const router = express.Router();
  */
 router.post("/register", async (req, res) => {
 	try {
-		const { username, password } = req.body;
+		const { username, password, email } = req.body;
 
-		if (!username || !password) {
+		if (!username || !password || !email) {
 			return res.status(400).json({
 				success: false,
 				data: null,
 				error: {
 					code: "VALIDATION_ERROR",
-					message: "Username and password are required",
+					message: "Username, password, and email are required",
 				},
 				timestamp: new Date().toISOString(),
 			});
 		}
 
-		const user = await authService.registerUser(username, password);
+		const user = await authService.registerUser(username, password, email);
 
 		res.status(201).json({
 			success: true,
@@ -54,7 +54,23 @@ router.post("/register", async (req, res) => {
 			});
 		}
 
-		if (error.message.includes("Username") || error.message.includes("Password")) {
+		if (error.message.includes("Email already registered")) {
+			return res.status(409).json({
+				success: false,
+				data: null,
+				error: {
+					code: "CONFLICT",
+					message: error.message,
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
+
+		if (
+			error.message.includes("Username") ||
+			error.message.includes("Password") ||
+			error.message.includes("Email")
+		) {
 			return res.status(400).json({
 				success: false,
 				data: null,

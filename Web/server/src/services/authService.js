@@ -74,6 +74,28 @@ function validatePassword(password) {
 }
 
 /**
+ * Validate email format
+ */
+function validateEmail(email) {
+	if (!email || typeof email !== "string") {
+		return { valid: false, error: "Email is required" };
+	}
+
+	// Basic email validation regex
+	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+	if (!emailRegex.test(email)) {
+		return { valid: false, error: "Email format is invalid" };
+	}
+
+	if (email.length > 255) {
+		return { valid: false, error: "Email must be at most 255 characters" };
+	}
+
+	return { valid: true };
+}
+
+/**
  * Hash password using bcrypt
  */
 async function hashPassword(password) {
@@ -120,7 +142,7 @@ function verifyToken(token) {
 /**
  * Register new user
  */
-async function registerUser(username, password) {
+async function registerUser(username, password, email) {
 	// Validate inputs
 	const usernameValidation = validateUsername(username);
 	if (!usernameValidation.valid) {
@@ -132,13 +154,24 @@ async function registerUser(username, password) {
 		throw new Error(passwordValidation.error);
 	}
 
-	// Check if user already exists
+	const emailValidation = validateEmail(email);
+	if (!emailValidation.valid) {
+		throw new Error(emailValidation.error);
+	}
+
+	// Check if user already exists by username
 	const existingUser = await csvService.findRecord(
 		USERS_FILE,
 		(user) => user.username === username
 	);
 	if (existingUser) {
 		throw new Error("Username already exists");
+	}
+
+	// Check if email already exists
+	const existingEmail = await csvService.findRecord(USERS_FILE, (user) => user.email === email);
+	if (existingEmail) {
+		throw new Error("Email already registered");
 	}
 
 	// Hash password
@@ -149,6 +182,7 @@ async function registerUser(username, password) {
 	const user = {
 		user_id: userId,
 		username,
+		email,
 		password_hash: passwordHash,
 		is_developer: "false",
 		created_at: new Date().toISOString(),
@@ -164,6 +198,7 @@ async function registerUser(username, password) {
 	return {
 		user_id: userId,
 		username,
+		email,
 		token,
 		created_at: user.created_at,
 	};
@@ -257,6 +292,7 @@ async function changePassword(userId, oldPassword, newPassword) {
 module.exports = {
 	validateUsername,
 	validatePassword,
+	validateEmail,
 	hashPassword,
 	comparePassword,
 	generateToken,

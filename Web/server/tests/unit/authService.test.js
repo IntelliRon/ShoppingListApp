@@ -59,6 +59,43 @@ describe("AuthService", () => {
 		});
 	});
 
+	describe("validateEmail", () => {
+		it("should validate a correct email", () => {
+			const result = authService.validateEmail("user@example.com");
+			expect(result.valid).toBe(true);
+		});
+
+		it("should reject email without @ symbol", () => {
+			const result = authService.validateEmail("userexample.com");
+			expect(result.valid).toBe(false);
+			expect(result.error).toContain("invalid");
+		});
+
+		it("should reject email without domain", () => {
+			const result = authService.validateEmail("user@");
+			expect(result.valid).toBe(false);
+			expect(result.error).toContain("invalid");
+		});
+
+		it("should reject email without local part", () => {
+			const result = authService.validateEmail("@example.com");
+			expect(result.valid).toBe(false);
+			expect(result.error).toContain("invalid");
+		});
+
+		it("should reject empty email", () => {
+			const result = authService.validateEmail("");
+			expect(result.valid).toBe(false);
+		});
+
+		it("should reject email longer than 255 characters", () => {
+			const longEmail = "a".repeat(250) + "@test.com";
+			const result = authService.validateEmail(longEmail);
+			expect(result.valid).toBe(false);
+			expect(result.error).toContain("at most 255");
+		});
+	});
+
 	describe("hashPassword", () => {
 		it("should hash password and return different string", async () => {
 			const password = "testPassword123";
@@ -148,12 +185,18 @@ describe("AuthService", () => {
 	describe("registerUser", () => {
 		it("should register user successfully", async () => {
 			csvService.findRecord.mockImplementationOnce(async () => null); // User doesn't exist
+			csvService.findRecord.mockImplementationOnce(async () => null); // Email doesn't exist
 			csvService.appendCSV.mockImplementationOnce(async () => {});
 
-			const result = await authService.registerUser("john_doe", "password123");
+			const result = await authService.registerUser(
+				"john_doe",
+				"password123",
+				"john@example.com"
+			);
 
 			expect(result).toHaveProperty("user_id");
 			expect(result).toHaveProperty("username", "john_doe");
+			expect(result).toHaveProperty("email", "john@example.com");
 			expect(result).toHaveProperty("token");
 			expect(result).toHaveProperty("created_at");
 			expect(csvService.appendCSV).toHaveBeenCalled();
@@ -162,23 +205,40 @@ describe("AuthService", () => {
 		it("should reject if username already exists", async () => {
 			csvService.findRecord.mockImplementationOnce(async () => ({ username: "john_doe" }));
 
-			await expect(authService.registerUser("john_doe", "password123")).rejects.toThrow(
-				"Username already exists"
-			);
+			await expect(
+				authService.registerUser("john_doe", "password123", "john@example.com")
+			).rejects.toThrow("Username already exists");
+		});
+
+		it("should reject if email already registered", async () => {
+			csvService.findRecord.mockImplementationOnce(async () => null); // User doesn't exist
+			csvService.findRecord.mockImplementationOnce(async () => ({
+				email: "john@example.com",
+			}));
+
+			await expect(
+				authService.registerUser("john_doe", "password123", "john@example.com")
+			).rejects.toThrow("Email already registered");
 		});
 
 		it("should reject invalid username", async () => {
-			await expect(authService.registerUser("ab", "password123")).rejects.toThrow(
-				"at least 3"
-			);
+			await expect(
+				authService.registerUser("ab", "password123", "john@example.com")
+			).rejects.toThrow("at least 3");
 		});
 
 		it("should reject invalid password", async () => {
 			csvService.findRecord.mockImplementationOnce(async () => null);
 
-			await expect(authService.registerUser("john_doe", "pass")).rejects.toThrow(
-				"at least 8"
-			);
+			await expect(
+				authService.registerUser("john_doe", "pass", "john@example.com")
+			).rejects.toThrow("at least 8");
+		});
+
+		it("should reject invalid email", async () => {
+			await expect(
+				authService.registerUser("john_doe", "password123", "invalid-email")
+			).rejects.toThrow("Email");
 		});
 	});
 

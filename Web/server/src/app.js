@@ -7,10 +7,6 @@ const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const config = require("./config/defaults.json");
-const csvService = require("./services/csvService");
-
-// Initialize database on startup
-csvService.initializeDatabase();
 
 const app = express();
 

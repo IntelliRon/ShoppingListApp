@@ -13,6 +13,7 @@ const csvService = require("../../src/services/csvService");
 const TEST_USER = {
 	username: "testuser",
 	password: "testPassword123",
+	email: "testuser@example.com",
 };
 
 const USERS_FILE = path.join(
@@ -49,6 +50,7 @@ describe("Authentication API", () => {
 			expect(response.body.success).toBe(true);
 			expect(response.body.data).toHaveProperty("user_id");
 			expect(response.body.data).toHaveProperty("username", TEST_USER.username);
+			expect(response.body.data).toHaveProperty("email", TEST_USER.email);
 			expect(response.body.data).toHaveProperty("token");
 			expect(response.body.data).toHaveProperty("created_at");
 		});
@@ -61,10 +63,23 @@ describe("Authentication API", () => {
 			expect(response.body.error.code).toBe("CONFLICT");
 		});
 
+		it("should reject duplicate email", async () => {
+			const response = await request(app).post("/api/v1/auth/register").send({
+				username: "anotheruser",
+				password: "validPassword123",
+				email: TEST_USER.email,
+			});
+
+			expect(response.status).toBe(409);
+			expect(response.body.success).toBe(false);
+			expect(response.body.error.code).toBe("CONFLICT");
+		});
+
 		it("should reject invalid username", async () => {
 			const response = await request(app).post("/api/v1/auth/register").send({
 				username: "ab",
 				password: "validPassword123",
+				email: "test@example.com",
 			});
 
 			expect(response.status).toBe(400);
@@ -76,6 +91,19 @@ describe("Authentication API", () => {
 			const response = await request(app).post("/api/v1/auth/register").send({
 				username: "newuser",
 				password: "short",
+				email: "test@example.com",
+			});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+			expect(response.body.error.code).toBe("VALIDATION_ERROR");
+		});
+
+		it("should reject invalid email", async () => {
+			const response = await request(app).post("/api/v1/auth/register").send({
+				username: "newuser",
+				password: "validPassword123",
+				email: "invalid-email",
 			});
 
 			expect(response.status).toBe(400);
