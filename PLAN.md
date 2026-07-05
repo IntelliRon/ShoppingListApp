@@ -1742,7 +1742,6 @@ Closes #42
 - [ ] Recurring shopping lists
 - [ ] Shopping analytics and recommendations
 - [ ] Multi-device sync
-- [ ] Mobile app for iOS (Swift)
 - [ ] Desktop application
 - [ ] Push notifications
 - [ ] Cloud backup of data
