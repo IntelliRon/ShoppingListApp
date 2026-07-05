@@ -280,10 +280,10 @@ async function changePassword(userId, oldPassword, newPassword) {
 		const updated = records.map((u) =>
 			u.user_id === userId
 				? {
-						...u,
-						password_hash: newPasswordHash,
-						updated_at: new Date().toISOString(),
-					}
+					...u,
+					password_hash: newPasswordHash,
+					updated_at: new Date().toISOString(),
+				}
 				: u
 		);
 
