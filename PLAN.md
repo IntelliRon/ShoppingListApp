@@ -1008,6 +1008,7 @@ Response (503 - Unhealthy):
     - Include user ID and expiration in token
     - Sign tokens with a strong secret key
     - **Token Expiration:** Tokens expire after 30 days
+    - **JWT Secret Requirement:** Must set `JWT_SECRET` environment variable in production (defaults to placeholder in development only)
     - **Note:** Token rotation is deferred to MVP-2 (refresh tokens, session ID rotation to be implemented later)
 
 3. **Authorization Checks**
@@ -1062,7 +1063,8 @@ Response (503 - Unhealthy):
 
 2. **Secrets Management**
     - Use `.env` files for local development (NOT committed)
-    - Use environment variables in production
+    - **Critical for Production:** Set environment variables: `JWT_SECRET` (required — no default), and optionally others
+    - Application will warn if default JWT secret used in production environments
     - Rotate secrets regularly
 
 3. **Logging**
