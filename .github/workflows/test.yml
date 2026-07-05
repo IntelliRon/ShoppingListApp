@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
       
       - name: Install dependencies
         working-directory: Web/server
@@ -42,42 +42,68 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const path = './Web/server/coverage/coverage-summary.json';
-            if (!fs.existsSync(path)) {
-              console.log('Coverage report not found');
+            const path = require('path');
+            const coveragePath = path.join(process.cwd(), 'Web', 'server', 'coverage', 'coverage-summary.json');
+            
+            console.log('Current working directory:', process.cwd());
+            console.log('Looking for coverage at:', coveragePath);
+            
+            // Debug: List Web/server directory
+            const webServerPath = path.join(process.cwd(), 'Web', 'server');
+            if (fs.existsSync(webServerPath)) {
+              console.log('Web/server contents:', fs.readdirSync(webServerPath));
+              const coverageDir = path.join(webServerPath, 'coverage');
+              if (fs.existsSync(coverageDir)) {
+                console.log('Coverage directory contents:', fs.readdirSync(coverageDir));
+              } else {
+                console.log('Coverage directory does not exist');
+              }
+            }
+            
+            if (!fs.existsSync(coveragePath)) {
+              console.log('⚠️  Coverage report not found at', coveragePath);
+              console.log('Skipping PR comment - coverage data unavailable');
               return;
             }
-            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
-            const total = data.total;
-            const comment = `## Coverage Report\n| Metric | Percentage |\n|--------|------------|\n| Statements | ${total.statements.pct}% |\n| Branches | ${total.branches.pct}% |\n| Functions | ${total.functions.pct}% |\n| Lines | ${total.lines.pct}% |`;
             
-            // Use PR number directly from pull_request context
-            const prNumber = context.payload.pull_request.number;
-            
-            // List existing comments on the PR
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber
-            });
-            
-            // Find existing coverage comment from bot
-            const bot = comments.find(c => c.user.type === 'Bot' && c.body.includes('Coverage Report'));
-            
-            if (bot) {
-              // Update existing comment
-              await github.rest.issues.updateComment({
+            try {
+              const data = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
+              const total = data.total;
+              const comment = `## Coverage Report\n| Metric | Percentage |\n|--------|------------|\n| Statements | ${total.statements.pct}% |\n| Branches | ${total.branches.pct}% |\n| Functions | ${total.functions.pct}% |\n| Lines | ${total.lines.pct}% |`;
+              
+              // Use PR number directly from pull_request context
+              const prNumber = context.payload.pull_request.number;
+              
+              // List existing comments on the PR
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: bot.id,
-                body: comment
+                issue_number: prNumber
               });
-            } else {
-              // Create new comment
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                body: comment
-              });
+              
+              // Find existing coverage comment from bot
+              const bot = comments.find(c => c.user.type === 'Bot' && c.body.includes('Coverage Report'));
+              
+              if (bot) {
+                // Update existing comment
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: bot.id,
+                  body: comment
+                });
+                console.log('✓ Updated existing coverage comment');
+              } else {
+                // Create new comment
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: comment
+                });
+                console.log('✓ Posted new coverage comment to PR');
+              }
+            } catch (error) {
+              console.error('Error posting coverage comment:', error.message);
+              throw error;
             }
