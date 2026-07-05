@@ -1594,8 +1594,6 @@ Closes #42
 
 ### Phase 1: Backend Core (Weeks 2-3)
 
-**Status:** In Progress (Authentication layer complete 2026-07-05)
-
 - [x] Implement Express app structure
 - [x] Create CSV file I/O service (with single-writer pattern for concurrency)
 - [x] Implement authentication (login/register/logout)
