@@ -257,12 +257,14 @@ async function findRecord(filePath, filterFn) {
 async function updateRecords(filePath, filterFn, updateFn) {
 	return enqueueFileOperation(filePath, async () => {
 		const records = await readCSV(filePath);
-		const updated = records.map((record) => {
-			if (filterFn(record)) {
-				return updateFn(record);
-			}
-			return record;
-		});
+		const updated = await Promise.all(
+			records.map(async (record) => {
+				if (filterFn(record)) {
+					return updateFn(record);
+				}
+				return record;
+			})
+		);
 
 		// Perform write without re-enqueueing
 		return new Promise((resolve, reject) => {

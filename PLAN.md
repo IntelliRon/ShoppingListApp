@@ -1788,10 +1788,11 @@ Closes #42
 
 ## Document History
 
-| Date       | Author       | Changes                                                                                                                                                             |
-| ---------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-07-05 | IntelliRon   | Fixed CSV service atomicity: implemented AsyncLocalStorage for nested read detection, ensures external reads wait for writes, added comprehensive integration tests |
-| 2026-07-04 | Project Team | Initial plan created                                                                                                                                                |
+| Date       | Author       | Changes                                                                                                                                                              |
+| ---------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-05 | IntelliRon   | Resolved PR comments: fixed error-handling test env var timing, made updateRecords support async functions, standardized auth middleware error codes to UNAUTHORIZED |
+| 2026-07-05 | IntelliRon   | Fixed CSV service atomicity: implemented AsyncLocalStorage for nested read detection, ensures external reads wait for writes, added comprehensive integration tests  |
+| 2026-07-04 | Project Team | Initial plan created                                                                                                                                                 |
 
 ---
 

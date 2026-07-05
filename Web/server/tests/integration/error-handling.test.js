@@ -2,9 +2,6 @@
  * Integration Tests for Routes and Error Handling
  */
 
-const request = require("supertest");
-const app = require("../../src/app");
-const csvService = require("../../src/services/csvService");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -14,10 +11,19 @@ let TEST_USERS_FILE;
 
 describe("API Error Handling", () => {
 	beforeAll(() => {
+		// Create temp directory and set env var BEFORE requiring app
+		// (so authService initializes with correct TEST_USERS_FILE path)
 		TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "api-error-test-"));
 		TEST_USERS_FILE = path.join(TEST_DIR, "users.csv");
 		process.env.TEST_USERS_FILE = TEST_USERS_FILE;
+
+		// Clear the require cache and require app AFTER env var is set
+		delete require.cache[require.resolve("../../src/app")];
+		delete require.cache[require.resolve("../../src/services/authService")];
 	});
+
+	const request = require("supertest");
+	const app = require("../../src/app");
 
 	afterAll(() => {
 		delete process.env.TEST_USERS_FILE;

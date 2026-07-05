@@ -32,7 +32,7 @@ function requireAuth(req, res, next) {
 			success: false,
 			data: null,
 			error: {
-				code: "INVALID_TOKEN",
+				code: "UNAUTHORIZED",
 				message: "Invalid or expired token",
 			},
 			timestamp: new Date().toISOString(),
