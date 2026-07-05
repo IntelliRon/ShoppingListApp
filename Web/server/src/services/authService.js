@@ -108,7 +108,9 @@ async function comparePassword(password, hash) {
 }
 
 /**
- * Generate JWT token
+ * Generate JWT token with fixed expiry
+ * Note: Token rotation is deferred to MVP-2
+ * Tokens are issued once and expire after config.auth.session_expiry_days (default 30 days)
  */
 function generateToken(userId) {
 	const secret = process.env.JWT_SECRET || config.auth.jwt_secret;
