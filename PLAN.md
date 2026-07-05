@@ -572,7 +572,8 @@ Authorization: Bearer {session_token}
 Response (200):
 {
   "success": true,
-  "data": null
+  "data": null,
+  "timestamp": "2026-07-04T10:30:00Z"
 }
 ```
 
@@ -591,7 +592,8 @@ Content-Type: application/json
 Response (200):
 {
   "success": true,
-  "data": null
+  "data": null,
+  "timestamp": "2026-07-04T10:30:00Z"
 }
 ```
 
