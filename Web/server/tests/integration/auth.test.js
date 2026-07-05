@@ -3,11 +3,22 @@
  * Tests the full API flow with real CSV files (in temp directory)
  */
 
-const request = require("supertest");
-const app = require("../../src/app");
 const path = require("path");
 const fs = require("fs");
-const csvService = require("../../src/services/csvService");
+const os = require("os");
+
+// Create temp directory for test files BEFORE requiring the app
+const TEST_DIR = path.join(os.tmpdir(), "shopping-list-api-test");
+if (!fs.existsSync(TEST_DIR)) {
+	fs.mkdirSync(TEST_DIR, { recursive: true });
+}
+
+// Set environment variable to use temp directory for tests
+const TEST_USERS_FILE = path.join(TEST_DIR, "users.csv");
+process.env.TEST_USERS_FILE = TEST_USERS_FILE;
+
+const request = require("supertest");
+const app = require("../../src/app");
 
 // Test constants
 const TEST_USER = {
@@ -16,32 +27,22 @@ const TEST_USER = {
 	email: "testuser@example.com",
 };
 
-const USERS_FILE = path.join(
-	__dirname,
-	"../../",
-	require("../../src/config/defaults.json").database.users_file
-);
+const USERS_FILE = TEST_USERS_FILE;
 
 describe("Authentication API", () => {
 	// Suppress expected console.error logs during testing
 	beforeAll(() => {
 		jest.spyOn(console, "error").mockImplementation(() => {});
-
-		// Ensure test database directory exists
-		const dbDir = path.dirname(USERS_FILE);
-		if (!fs.existsSync(dbDir)) {
-			fs.mkdirSync(dbDir, { recursive: true });
-		}
 	});
 
 	afterAll(() => {
 		// Restore console.error
 		console.error.mockRestore();
 
-		// Clean up test files
+		// Clean up test files and directory
 		try {
-			if (fs.existsSync(USERS_FILE)) {
-				fs.unlinkSync(USERS_FILE);
+			if (fs.existsSync(TEST_DIR)) {
+				fs.rmSync(TEST_DIR, { recursive: true, force: true });
 			}
 		} catch (error) {
 			console.log("Cleanup note:", error.message);

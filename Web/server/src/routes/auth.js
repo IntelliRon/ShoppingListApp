@@ -42,25 +42,18 @@ router.post("/register", async (req, res) => {
 	} catch (error) {
 		console.error("[Auth Error]", error.message);
 
-		if (error.message.includes("Username already exists")) {
+		// Return generic conflict message for both username and email conflicts
+		// to prevent account enumeration attacks (PLAN.md:1036-1039)
+		if (
+			error.message.includes("Username already exists") ||
+			error.message.includes("Email already registered")
+		) {
 			return res.status(409).json({
 				success: false,
 				data: null,
 				error: {
 					code: "CONFLICT",
-					message: error.message,
-				},
-				timestamp: new Date().toISOString(),
-			});
-		}
-
-		if (error.message.includes("Email already registered")) {
-			return res.status(409).json({
-				success: false,
-				data: null,
-				error: {
-					code: "CONFLICT",
-					message: error.message,
+					message: "Username or email already in use",
 				},
 				timestamp: new Date().toISOString(),
 			});

@@ -7,6 +7,7 @@ const csvService = require("../../src/services/csvService");
 
 // Mock the CSV service
 jest.mock("../../src/services/csvService", () => ({
+	readCSV: jest.fn(),
 	findRecord: jest.fn(),
 	appendCSV: jest.fn(),
 	updateRecords: jest.fn(),
@@ -184,8 +185,8 @@ describe("AuthService", () => {
 
 	describe("registerUser", () => {
 		it("should register user successfully", async () => {
-			csvService.findRecord.mockImplementationOnce(async () => null); // User doesn't exist
-			csvService.findRecord.mockImplementationOnce(async () => null); // Email doesn't exist
+			// Mock readCSV to return empty list (no existing users)
+			csvService.readCSV.mockResolvedValueOnce([]);
 			csvService.appendCSV.mockImplementationOnce(async () => {});
 
 			const result = await authService.registerUser(
@@ -203,7 +204,18 @@ describe("AuthService", () => {
 		});
 
 		it("should reject if username already exists", async () => {
-			csvService.findRecord.mockImplementationOnce(async () => ({ username: "john_doe" }));
+			// Mock readCSV to return existing user with username
+			csvService.readCSV.mockResolvedValueOnce([
+				{
+					user_id: "u_existing",
+					username: "john_doe",
+					email: "existing@example.com",
+					password_hash: "hash",
+					is_developer: "false",
+					created_at: "2026-07-05T00:00:00Z",
+					updated_at: "2026-07-05T00:00:00Z",
+				},
+			]);
 
 			await expect(
 				authService.registerUser("john_doe", "password123", "john@example.com")
@@ -211,10 +223,18 @@ describe("AuthService", () => {
 		});
 
 		it("should reject if email already registered", async () => {
-			csvService.findRecord.mockImplementationOnce(async () => null); // User doesn't exist
-			csvService.findRecord.mockImplementationOnce(async () => ({
-				email: "john@example.com",
-			}));
+			// Mock readCSV to return existing user with different username but same email
+			csvService.readCSV.mockResolvedValueOnce([
+				{
+					user_id: "u_existing",
+					username: "anotheruser",
+					email: "john@example.com",
+					password_hash: "hash",
+					is_developer: "false",
+					created_at: "2026-07-05T00:00:00Z",
+					updated_at: "2026-07-05T00:00:00Z",
+				},
+			]);
 
 			await expect(
 				authService.registerUser("john_doe", "password123", "john@example.com")

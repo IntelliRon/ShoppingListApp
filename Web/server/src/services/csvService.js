@@ -19,6 +19,7 @@ const writeQueues = new Map();
 /**
  * Enqueue an operation to execute after all previous writes complete
  * Chains the operation to the existing queue and updates the queue
+ * Catches errors to prevent queue poisoning
  */
 function enqueueFileOperation(filePath, operation) {
 	if (!writeQueues.has(filePath)) {
@@ -26,7 +27,13 @@ function enqueueFileOperation(filePath, operation) {
 	}
 
 	const currentQueue = writeQueues.get(filePath);
-	const newQueue = currentQueue.then(() => operation());
+	const newQueue = currentQueue
+		.then(() => operation())
+		.catch((error) => {
+			// Reset queue to resolved state to allow future operations
+			writeQueues.set(filePath, Promise.resolve());
+			throw error;
+		});
 	writeQueues.set(filePath, newQueue);
 
 	return newQueue;
@@ -52,11 +59,16 @@ async function readCSV(filePath) {
 		}
 
 		const results = [];
-		fs.createReadStream(filePath)
+		const stream = fs.createReadStream(filePath);
+
+		stream
 			.pipe(csvParser())
 			.on("data", (data) => results.push(data))
 			.on("end", () => resolve(results))
 			.on("error", reject);
+
+		// Handle stream errors (e.g., permission denied, IO errors)
+		stream.on("error", reject);
 	});
 }
 

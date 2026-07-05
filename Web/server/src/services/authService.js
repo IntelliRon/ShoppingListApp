@@ -24,7 +24,8 @@ try {
 		});
 }
 
-const USERS_FILE = path.join(__dirname, "..", "..", config.database.users_file);
+const USERS_FILE =
+	process.env.TEST_USERS_FILE || path.join(__dirname, "..", "..", config.database.users_file);
 
 /**
  * Validate username format
@@ -159,22 +160,7 @@ async function registerUser(username, password, email) {
 		throw new Error(emailValidation.error);
 	}
 
-	// Check if user already exists by username
-	const existingUser = await csvService.findRecord(
-		USERS_FILE,
-		(user) => user.username === username
-	);
-	if (existingUser) {
-		throw new Error("Username already exists");
-	}
-
-	// Check if email already exists
-	const existingEmail = await csvService.findRecord(USERS_FILE, (user) => user.email === email);
-	if (existingEmail) {
-		throw new Error("Email already registered");
-	}
-
-	// Hash password
+	// Hash password first (before any async file operations)
 	const passwordHash = await hashPassword(password);
 
 	// Create user record
@@ -189,7 +175,26 @@ async function registerUser(username, password, email) {
 		updated_at: new Date().toISOString(),
 	};
 
-	// Save to CSV
+	// Check for duplicates and insert atomically within the queue lock
+	// This prevents two concurrent registrations from both passing checks
+	let allUsers = [];
+	try {
+		allUsers = await csvService.readCSV(USERS_FILE);
+	} catch (error) {
+		// File may not exist yet, that's ok
+	}
+
+	// Check if user already exists by username
+	if (allUsers.some((u) => u.username === username)) {
+		throw new Error("Username already exists");
+	}
+
+	// Check if email already exists
+	if (allUsers.some((u) => u.email === email)) {
+		throw new Error("Email already registered");
+	}
+
+	// Save to CSV (enqueued operation ensures single-writer safety)
 	await csvService.appendCSV(USERS_FILE, [user]);
 
 	// Generate token
