@@ -23,7 +23,10 @@ const USERS_FILE = path.join(
 );
 
 describe("Authentication API", () => {
+	// Suppress expected console.error logs during testing
 	beforeAll(() => {
+		jest.spyOn(console, "error").mockImplementation(() => {});
+
 		// Ensure test database directory exists
 		const dbDir = path.dirname(USERS_FILE);
 		if (!fs.existsSync(dbDir)) {
@@ -32,6 +35,9 @@ describe("Authentication API", () => {
 	});
 
 	afterAll(() => {
+		// Restore console.error
+		console.error.mockRestore();
+
 		// Clean up test files
 		try {
 			if (fs.existsSync(USERS_FILE)) {
