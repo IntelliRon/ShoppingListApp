@@ -26,42 +26,44 @@ const activeOperations = new Map();
  * Enqueue an operation to execute after all previous writes complete
  * Chains the operation to the existing queue and updates the queue
  * Catches errors to prevent queue poisoning and ensure next operations run
+ * activeOperations is incremented when operation STARTS (not enqueued) to avoid race condition
  */
 function enqueueFileOperation(filePath, operation) {
 	if (!writeQueues.has(filePath)) {
 		writeQueues.set(filePath, Promise.resolve());
 	}
 
-	// Mark operation as active
-	activeOperations.set(filePath, (activeOperations.get(filePath) || 0) + 1);
-
 	const currentQueue = writeQueues.get(filePath);
 	// Chain from .catch() to ensure new operation runs even after a prior failure
 	const newQueue = currentQueue
-		.then(() => operation())
+		.then(() => {
+			// Mark operation as active (starts executing) - after prior operation completes
+			activeOperations.set(filePath, (activeOperations.get(filePath) || 0) + 1);
+			return operation();
+		})
 		.catch((error) => {
 			// After a failure, reset queue but rethrow to propagate to caller
-			writeQueues.set(filePath, Promise.resolve());
+			writeQueues.delete(filePath);
 			throw error;
 		})
-		// Chain a handler that resets queue on success (cleanup unbounded Map growth)
+		// Chain a handler that cleans up activeOperations and queue when done
 		.then(
 			(result) => {
-				// Decrement active operation count
+				// Decrement active operation count and cleanup
 				const count = (activeOperations.get(filePath) || 1) - 1;
 				if (count > 0) {
 					activeOperations.set(filePath, count);
 				} else {
 					activeOperations.delete(filePath);
 				}
-				// On success, check if queue is now idle and clean up
+				// On success, check if queue is now idle and clean up the key
 				if (writeQueues.get(filePath) === newQueue) {
-					writeQueues.set(filePath, Promise.resolve());
+					writeQueues.delete(filePath);
 				}
 				return result;
 			},
 			(error) => {
-				// Decrement active operation count
+				// Decrement active operation count and cleanup
 				const count = (activeOperations.get(filePath) || 1) - 1;
 				if (count > 0) {
 					activeOperations.set(filePath, count);

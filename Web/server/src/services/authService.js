@@ -114,6 +114,16 @@ async function comparePassword(password, hash) {
  */
 function generateToken(userId) {
 	const secret = process.env.JWT_SECRET || config.auth.jwt_secret;
+	const env = process.env.NODE_ENV || "development";
+
+	// Warn if using default placeholder secret outside development
+	if (env !== "development" && secret === config.auth.jwt_secret) {
+		// eslint-disable-next-line no-console
+		console.error(
+			"⚠️  WARNING: Using default JWT secret in production! Set JWT_SECRET environment variable."
+		);
+	}
+
 	const expiresIn = config.auth.session_expiry_days * 24 * 60 * 60; // Convert days to seconds
 
 	return jwt.sign(
