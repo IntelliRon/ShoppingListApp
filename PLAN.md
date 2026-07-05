@@ -523,17 +523,19 @@ Content-Type: application/json
 
 {
   "username": "john_doe",
-  "password": "securePassword123"
+  "password": "securePassword123",
+  "email": "john_doe@example.com"
 }
 
 Response (201):
 {
   "success": true,
   "data": {
-    "user_id": "u001",
+    "user_id": "u_abc123def456...",
     "username": "john_doe",
-    "session_token": "eyJhbGc...",
-    "token_expires_at": "2026-07-11T10:30:00Z"
+    "email": "john_doe@example.com",
+    "token": "eyJhbGc...",
+    "created_at": "2026-07-04T10:30:00Z"
   }
 }
 ```
@@ -553,11 +555,11 @@ Response (200):
 {
   "success": true,
   "data": {
-    "user_id": "u001",
+    "user_id": "u_abc123def456...",
     "username": "john_doe",
-    "session_token": "eyJhbGc...",
-    "token_expires_at": "2026-07-11T10:30:00Z"
-  }
+    "token": "eyJhbGc...",
+  },
+  "timestamp": "2026-07-04T10:30:00Z"
 }
 ```
 
@@ -1003,8 +1005,8 @@ Response (503 - Unhealthy):
     - Use JWT (JSON Web Tokens) or secure session IDs
     - Include user ID and expiration in token
     - Sign tokens with a strong secret key
-    - **Token Rotation:** Rotate tokens every 7 days by default
     - **Token Expiration:** Tokens expire after 30 days
+    - **Note:** Token rotation is deferred to MVP-2 (refresh tokens, session ID rotation to be implemented later)
 
 3. **Authorization Checks**
     - Verify token validity on every request
@@ -1122,6 +1124,8 @@ Web/server/config/defaults.json
 	}
 }
 ```
+
+**Note:** `session_rotation_days` is configured but currently unused in Phase 1 — token rotation will be implemented in MVP-2.
 
 ### Environment-Specific Configs
 
@@ -1749,7 +1753,7 @@ Closes #42
 | Node.js/Express backend | Quick to set up, extensive npm ecosystem, good for REST APIs             |
 | Android native (Kotlin) | Better performance and user experience vs. cross-platform solutions      |
 | JWT for sessions        | Stateless, scalable, suitable for REST APIs                              |
-| Session token rotation  | Enhanced security best practice                                          |
+| Token rotation (MVP-2)  | Enhanced security best practice — deferred to Phase 2 for MVP-1 focus    |
 | Per-user CSV files      | Better scalability than single-file database, easier user data isolation |
 | Monorepo structure      | Easier project management, shared documentation, atomic commits          |
 
