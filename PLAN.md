@@ -27,7 +27,9 @@
 ## Project Overview
 
 ### Purpose
+
 A cross-platform shopping list application allowing users to:
+
 - Create and manage multiple shopping lists
 - Organize items by customizable sections
 - Mark items as completed
@@ -35,6 +37,7 @@ A cross-platform shopping list application allowing users to:
 - Access from Android mobile app and web developer interface
 
 ### Key Constraints
+
 - **Database Format:** CSV-based (flatfile)
 - **Authentication:** Username/password with bcrypt hashing
 - **Session Management:** Rotatable session keys with multi-day persistence
@@ -44,6 +47,7 @@ A cross-platform shopping list application allowing users to:
 ### Scope
 
 #### MVP-1 (Current Scope)
+
 - User authentication and session management
 - List CRUD operations
 - Section management within lists
@@ -54,6 +58,7 @@ A cross-platform shopping list application allowing users to:
 - API endpoints
 
 #### MVP-2 (Future Scope)
+
 - Web-based shopping list UI
 - Forgot password functionality with email verification
 - Enhanced developer dashboard
@@ -90,6 +95,7 @@ ShoppingListApp/ (Monorepo Root)
 ### Technology Stack
 
 **Backend:**
+
 - Node.js runtime
 - Express.js web framework
 - bcrypt for password hashing
@@ -98,12 +104,14 @@ ShoppingListApp/ (Monorepo Root)
 - Jest/Mocha for unit testing
 
 **Frontend (Android):**
+
 - Kotlin (native Android)
 - Android Studio IDE
 - Retrofit/OkHttp for API communication
 - Local state management
 
 **Developer UI:**
+
 - React or vanilla JavaScript (TBD based on MVP-2 scope)
 - Basic admin interface
 
@@ -112,24 +120,26 @@ ShoppingListApp/ (Monorepo Root)
 ## Backend (Express Server) Specification
 
 ### Core Responsibilities
+
 1. **Authentication & Authorization**
-   - User login/logout
-   - Password management and hashing
-   - Session token generation and rotation
-   - Developer role verification
+    - User login/logout
+    - Password management and hashing
+    - Session token generation and rotation
+    - Developer role verification
 
 2. **API Gateway**
-   - RESTful endpoints for all user operations
-   - Request validation
-   - Error handling
-   - Response standardization
+    - RESTful endpoints for all user operations
+    - Request validation
+    - Error handling
+    - Response standardization
 
 3. **Data Persistence**
-   - CSV file I/O operations
-   - Data consistency enforcement
-   - Atomic operations for multi-item updates
+    - CSV file I/O operations
+    - Data consistency enforcement
+    - Atomic operations for multi-item updates
 
 ### Constraints & Requirements
+
 - **Session Rotation:** Session keys must be rotated periodically (recommend: every 7 days)
 - **Multi-day Persistence:** Users remain logged in across multiple days
 - **Last-Modified Tracking:** Each item must have a `last_modified` timestamp for sync reconciliation
@@ -211,45 +221,45 @@ Web/server/
 ### Core Screens
 
 1. **Login Screen**
-   - Username input
-   - Password input
-   - Login button
-   - Error message display
-   - Persistent login option (checkbox)
+    - Username input
+    - Password input
+    - Login button
+    - Error message display
+    - Persistent login option (checkbox)
 
 2. **Home Screen (List of Shopping Lists)**
-   - Display all shopping lists
-   - Add new list button
-   - User profile button (top right)
-   - Sync status indicator
+    - Display all shopping lists
+    - Add new list button
+    - User profile button (top right)
+    - Sync status indicator
 
 3. **Shopping List Detail Screen**
-   - List title (editable via menu)
-   - Sections with items grouped below each
-   - "Checked Items" section (greyed out)
-   - Add item button at bottom
-   - Menu button (top right) with options:
-     - Rename list
-     - Delete list
-     - Manage sections
+    - List title (editable via menu)
+    - Sections with items grouped below each
+    - "Checked Items" section (greyed out)
+    - Add item button at bottom
+    - Menu button (top right) with options:
+        - Rename list
+        - Delete list
+        - Manage sections
 
 4. **Add/Edit Item Dialog**
-   - Item name input
-   - Section dropdown (including "Ungrouped" option)
-   - Add button
-   - Cancel button
+    - Item name input
+    - Section dropdown (including "Ungrouped" option)
+    - Add button
+    - Cancel button
 
 5. **Manage Sections Modal**
-   - List of sections with edit/delete buttons
-   - Add new section button
-   - Rename section functionality
-   - Remove section functionality (with item handling strategy)
+    - List of sections with edit/delete buttons
+    - Add new section button
+    - Rename section functionality
+    - Remove section functionality (with item handling strategy)
 
 6. **User Profile Screen**
-   - Current username display
-   - Edit username button
-   - Change password section
-   - Logout button
+    - Current username display
+    - Edit username button
+    - Change password section
+    - Logout button
 
 ### Architecture Patterns
 
@@ -319,6 +329,7 @@ App/
 ```
 
 ### Key Libraries & Dependencies
+
 - AndroidX / Jetpack
 - Retrofit for HTTP requests
 - OkHttp for HTTP client
@@ -338,6 +349,7 @@ App/
 ## Database Design
 
 ### 1. Users Database (CSV)
+
 **Location:** `Web/server/db/users.csv`
 
 ```csv
@@ -347,6 +359,7 @@ u002,admin_user,admin@example.com,$2b$10$...,2026-01-10T08:00:00Z,2026-07-04T09:
 ```
 
 **Fields:**
+
 - `user_id` (string, unique): UUID or sequential ID
 - `username` (string, unique): Username for login
 - `email` (string, optional): Email address
@@ -357,6 +370,7 @@ u002,admin_user,admin@example.com,$2b$10$...,2026-01-10T08:00:00Z,2026-07-04T09:
 - `is_active` (boolean): Account status
 
 ### 2. Shopping Lists Database (Per-User CSV)
+
 **Location:** `Web/server/db/shopping-lists/{user_id}.csv`
 
 ```csv
@@ -366,6 +380,7 @@ l002,Hardware Store,2026-02-01T14:15:00Z,2026-07-02T11:00:00Z,3
 ```
 
 **Fields:**
+
 - `list_id` (string, unique per user)
 - `list_name` (string): Display name of list
 - `created_at` (ISO8601): Creation timestamp
@@ -373,6 +388,7 @@ l002,Hardware Store,2026-02-01T14:15:00Z,2026-07-02T11:00:00Z,3
 - `version` (integer): Version counter for concurrent update detection
 
 ### 3. Sections Database (Per-User CSV)
+
 **Location:** `Web/server/db/shopping-lists/{user_id}_sections.csv`
 
 ```csv
@@ -383,6 +399,7 @@ sec003,l001,Meat,3,2026-01-20T10:10:00Z,2026-01-20T10:10:00Z
 ```
 
 **Fields:**
+
 - `section_id` (string, unique per user)
 - `list_id` (string): Associated shopping list
 - `section_name` (string): Display name
@@ -391,6 +408,7 @@ sec003,l001,Meat,3,2026-01-20T10:10:00Z,2026-01-20T10:10:00Z
 - `last_modified` (ISO8601): Last modification timestamp (for sync)
 
 ### 4. Items Database (Per-User CSV)
+
 **Location:** `Web/server/db/shopping-lists/{user_id}_items.csv`
 
 ```csv
@@ -401,6 +419,7 @@ i003,l001,,Milk,false,2026-01-20T10:10:00Z,2026-01-20T10:10:00Z
 ```
 
 **Fields:**
+
 - `item_id` (string, unique per user)
 - `list_id` (string): Associated shopping list
 - `section_id` (string or null): Associated section or null for ungrouped
@@ -410,6 +429,7 @@ i003,l001,,Milk,false,2026-01-20T10:10:00Z,2026-01-20T10:10:00Z
 - `last_modified` (ISO8601): **Critical for sync**: Last modification timestamp (for reconciliation)
 
 ### 5. Session Management (In-Memory or File-Based)
+
 **Location:** `Web/server/db/sessions.csv` (optional, can be in-memory for MVP)
 
 ```csv
@@ -418,6 +438,7 @@ sess001,u001,eyJhbGc...,2026-07-01T10:00:00Z,2026-07-04T15:30:00Z,2026-07-11T10:
 ```
 
 **Fields:**
+
 - `session_id` (string, unique): Session identifier
 - `user_id` (string): Associated user
 - `token` (string): JWT or session token
@@ -428,21 +449,38 @@ sess001,u001,eyJhbGc...,2026-07-01T10:00:00Z,2026-07-04T15:30:00Z,2026-07-11T10:
 
 ### Data Constraints & Validation
 
-| Entity | Constraint |
-|--------|-----------|
-| Username | 3-32 characters, alphanumeric + underscore |
-| Password | Min 8 characters, hashed with bcrypt |
-| List Name | 1-100 characters |
-| Section Name | 1-50 characters |
-| Item Name | 1-200 characters |
-| Max Items per List | Global config (default: 1000) |
-| Max Sections per List | Global config (default: 50) |
+| Entity                | Constraint                                 |
+| --------------------- | ------------------------------------------ |
+| Username              | 3-32 characters, alphanumeric + underscore |
+| Password              | Min 8 characters, hashed with bcrypt       |
+| List Name             | 1-100 characters                           |
+| Section Name          | 1-50 characters                            |
+| Item Name             | 1-200 characters                           |
+| Max Items per List    | Global config (default: 1000)              |
+| Max Sections per List | Global config (default: 50)                |
+
+### Data Persistence & CSV Service
+
+**Implementation:** Single-writer pattern with per-file queue locking
+
+- **Purpose:** Ensure thread-safe concurrent writes to CSV files
+- **Mechanism:** File write queue manager maintains per-file Promise chains
+    - Each file path maps to a write queue (Promise chain)
+    - All write operations (`writeCSV`, `appendCSV`, `updateRecords`, `deleteRecords`) serialize through queue
+    - Prevents race conditions and file corruption from concurrent writes
+    - Transparent to callers - no API changes required
+- **Behavior:**
+    - Multiple concurrent requests to same file are queued and executed sequentially
+    - Write operations block until previous writes complete
+    - Read operations proceed independently (CSV parsing handles concurrent reads safely)
+- **Status:** Implemented in Phase 1 (2026-07-05) - addresses potential data corruption from concurrent writes without external dependencies
 
 ---
 
 ## API Specification
 
 ### Base URL
+
 ```
 http://localhost:3000/api/v1  (Development)
 https://api.shoppinglist.intelliron.xyz/api/v1  (Production)
@@ -462,21 +500,23 @@ All responses follow this standard format:
 ```
 
 Error responses:
+
 ```json
 {
-  "success": false,
-  "data": null,
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Invalid credentials"
-  },
-  "timestamp": "2026-07-04T10:30:00Z"
+	"success": false,
+	"data": null,
+	"error": {
+		"code": "UNAUTHORIZED",
+		"message": "Invalid credentials"
+	},
+	"timestamp": "2026-07-04T10:30:00Z"
 }
 ```
 
 ### Authentication Endpoints
 
 #### 1. Register User
+
 ```
 POST /auth/register
 Content-Type: application/json
@@ -499,6 +539,7 @@ Response (201):
 ```
 
 #### 2. Login
+
 ```
 POST /auth/login
 Content-Type: application/json
@@ -521,6 +562,7 @@ Response (200):
 ```
 
 #### 3. Logout
+
 ```
 POST /auth/logout
 Authorization: Bearer {session_token}
@@ -533,6 +575,7 @@ Response (200):
 ```
 
 #### 4. Change Password
+
 ```
 POST /auth/change-password
 Authorization: Bearer {session_token}
@@ -553,6 +596,7 @@ Response (200):
 ### Shopping List Endpoints
 
 #### 5. Get All Lists
+
 ```
 GET /lists
 Authorization: Bearer {session_token}
@@ -574,6 +618,7 @@ Response (200):
 ```
 
 #### 6. Create List
+
 ```
 POST /lists
 Authorization: Bearer {session_token}
@@ -596,6 +641,7 @@ Response (201):
 ```
 
 #### 7. Rename List
+
 ```
 PUT /lists/{list_id}
 Authorization: Bearer {session_token}
@@ -617,6 +663,7 @@ Response (200):
 ```
 
 #### 8. Delete List
+
 ```
 DELETE /lists/{list_id}
 Authorization: Bearer {session_token}
@@ -631,6 +678,7 @@ Response (200):
 ### Section Endpoints
 
 #### 9. Get All Sections for List
+
 ```
 GET /lists/{list_id}/sections
 Authorization: Bearer {session_token}
@@ -650,6 +698,7 @@ Response (200):
 ```
 
 #### 10. Add Section
+
 ```
 POST /lists/{list_id}/sections
 Authorization: Bearer {session_token}
@@ -672,6 +721,7 @@ Response (201):
 ```
 
 #### 11. Rename Section
+
 ```
 PUT /lists/{list_id}/sections/{section_id}
 Authorization: Bearer {session_token}
@@ -693,6 +743,7 @@ Response (200):
 ```
 
 #### 12. Delete Section
+
 ```
 DELETE /lists/{list_id}/sections/{section_id}
 Authorization: Bearer {session_token}
@@ -707,6 +758,7 @@ Response (200):
 ### Item Endpoints
 
 #### 13. Get All Items for List
+
 ```
 GET /lists/{list_id}/items
 Authorization: Bearer {session_token}
@@ -728,6 +780,7 @@ Response (200):
 ```
 
 #### 14. Add Item
+
 ```
 POST /lists/{list_id}/items
 Authorization: Bearer {session_token}
@@ -753,6 +806,7 @@ Response (201):
 ```
 
 #### 15. Update Item (Rename, Change Section, Toggle Completion)
+
 ```
 PUT /lists/{list_id}/items/{item_id}
 Authorization: Bearer {session_token}
@@ -778,6 +832,7 @@ Response (200):
 ```
 
 #### 16. Delete Item
+
 ```
 DELETE /lists/{list_id}/items/{item_id}
 Authorization: Bearer {session_token}
@@ -792,6 +847,7 @@ Response (200):
 ### Sync Endpoint
 
 #### 17. Sync Items (Client-Server Reconciliation)
+
 ```
 POST /sync/items
 Authorization: Bearer {session_token}
@@ -825,6 +881,7 @@ Response (200):
 ### Developer Endpoints
 
 #### 18. Get Configuration
+
 ```
 GET /developer/config
 Authorization: Bearer {session_token}
@@ -843,6 +900,7 @@ Response (200):
 ```
 
 #### 19. Update Configuration
+
 ```
 POST /developer/config
 Authorization: Bearer {session_token}
@@ -865,6 +923,7 @@ Response (200):
 ```
 
 #### 20. Reload Configuration (Runtime)
+
 ```
 POST /developer/config/reload
 Authorization: Bearer {session_token}
@@ -883,6 +942,7 @@ Response (200):
 ### Health Check Endpoint
 
 #### 21. Health Check (No Authentication Required)
+
 ```
 GET /api/v1/health
 
@@ -914,6 +974,7 @@ Response (503 - Unhealthy):
 ```
 
 **Purpose:** Used by load balancers, monitoring systems, and deployment health checks to verify:
+
 - Server process is running
 - CSV database directory is accessible
 - Basic file system permissions are correct
@@ -921,6 +982,7 @@ Response (503 - Unhealthy):
 - Current environment (development/production)
 
 **Implementation Notes:**
+
 - No authentication required (should be accessible without credentials)
 - Returns 200 if all checks pass
 - Returns 503 if any check fails
@@ -933,135 +995,138 @@ Response (503 - Unhealthy):
 ### Authentication & Authorization
 
 1. **Password Storage**
-   - Hash using bcrypt with salt rounds ≥ 10
-   - Never store plain text passwords
-   - Validate password strength (min 8 chars, mixed case recommended)
+    - Hash using bcrypt with salt rounds ≥ 10
+    - Never store plain text passwords
+    - Validate password strength (min 8 chars, mixed case recommended)
 
 2. **Session Tokens**
-   - Use JWT (JSON Web Tokens) or secure session IDs
-   - Include user ID and expiration in token
-   - Sign tokens with a strong secret key
-   - **Token Rotation:** Rotate tokens every 7 days by default
-   - **Token Expiration:** Tokens expire after 30 days
+    - Use JWT (JSON Web Tokens) or secure session IDs
+    - Include user ID and expiration in token
+    - Sign tokens with a strong secret key
+    - **Token Rotation:** Rotate tokens every 7 days by default
+    - **Token Expiration:** Tokens expire after 30 days
 
 3. **Authorization Checks**
-   - Verify token validity on every request
-   - Ensure user can only access their own data
-   - Verify developer role for admin endpoints
+    - Verify token validity on every request
+    - Ensure user can only access their own data
+    - Verify developer role for admin endpoints
 
 ### API Security
 
 1. **HTTPS/TLS**
-   - Use HTTPS in production
-   - Use HTTP in development
-   - Enforce HTTPS with HSTS headers
+    - Use HTTPS in production
+    - Use HTTP in development
+    - Enforce HTTPS with HSTS headers
 
 2. **CORS Configuration**
-   - Whitelist Android app origin (if applicable)
-   - Whitelist developer UI origin
-   - Disable credentials if not needed
+    - Whitelist Android app origin (if applicable)
+    - Whitelist developer UI origin
+    - Disable credentials if not needed
 
 3. **Rate Limiting**
-   - Implement rate limiting on login endpoint (prevent brute force)
-   - Recommend: 5 failed attempts = 15-minute lockout
-   - Global rate limiting: 100 requests/minute per user
+    - Implement rate limiting on login endpoint (prevent brute force)
+    - Recommend: 5 failed attempts = 15-minute lockout
+    - Global rate limiting: 100 requests/minute per user
 
 4. **Input Validation**
-   - Validate all user inputs
-   - Sanitize inputs to prevent injection attacks
-   - Use strict type checking
+    - Validate all user inputs
+    - Sanitize inputs to prevent injection attacks
+    - Use strict type checking
 
 5. **Error Messages**
-   - Don't expose sensitive information in error messages
-   - Return generic messages to prevent user enumeration
+    - Don't expose sensitive information in error messages
+    - Return generic messages to prevent user enumeration
 
 ### Data Security
 
 1. **CSV File Security**
-   - Restrict file permissions (user read/write only)
-   - Consider encrypting CSV files at rest (future enhancement)
-   - Backup strategy for data recovery
+    - Restrict file permissions (user read/write only)
+    - Consider encrypting CSV files at rest (future enhancement)
+    - Backup strategy for data recovery
 
 2. **Sync Security**
-   - Use `last_modified` timestamps for conflict resolution
-   - Implement optimistic locking to prevent data loss
-   - Log all sync operations
+    - Use `last_modified` timestamps for conflict resolution
+    - Implement optimistic locking to prevent data loss
+    - Log all sync operations
 
 ### Development Considerations
 
 1. **Developer Account Management**
-   - Manually assign `is_developer` flag in database
-   - Implement strong authentication for developer endpoints
-   - Audit trail for configuration changes
+    - Manually assign `is_developer` flag in database
+    - Implement strong authentication for developer endpoints
+    - Audit trail for configuration changes
 
 2. **Secrets Management**
-   - Use `.env` files for local development (NOT committed)
-   - Use environment variables in production
-   - Rotate secrets regularly
+    - Use `.env` files for local development (NOT committed)
+    - Use environment variables in production
+    - Rotate secrets regularly
 
 3. **Logging**
-   - Log authentication events
-   - Log data modifications
-   - Don't log sensitive data (passwords, tokens)
+    - Log authentication events
+    - Log data modifications
+    - Don't log sensitive data (passwords, tokens)
 
 ---
 
 ## Configuration & Defaults
 
 ### Configuration File Location
+
 ```
 Web/server/config/defaults.json
 ```
 
 ### Default Configuration
+
 ```json
 {
-  "server": {
-    "port": 3000,
-    "env": "development",
-    "cors": {
-      "origin": ["http://localhost:8080", "http://localhost:3001"],
-      "credentials": true
-    }
-  },
-  "database": {
-    "path": "./db",
-    "users_file": "./db/users.csv",
-    "sessions_file": "./db/sessions.csv",
-    "shopping_lists_dir": "./db/shopping-lists"
-  },
-  "auth": {
-    "bcrypt_rounds": 10,
-    "password_min_length": 8,
-    "session_expiry_days": 30,
-    "session_rotation_days": 7,
-    "jwt_secret": "your-secret-key-change-in-production"
-  },
-  "limits": {
-    "max_items_per_list": 1000,
-    "max_sections_per_list": 50,
-    "max_lists_per_user": 100,
-    "max_username_length": 32,
-    "max_list_name_length": 100,
-    "max_item_name_length": 200,
-    "max_section_name_length": 50
-  },
-  "rateLimit": {
-    "enabled": true,
-    "windowMs": 900000,
-    "max": 100,
-    "skipSuccessfulRequests": false
-  },
-  "logging": {
-    "level": "info",
-    "format": "json"
-  }
+	"server": {
+		"port": 3000,
+		"env": "development",
+		"cors": {
+			"origin": ["http://localhost:8080", "http://localhost:3001"],
+			"credentials": true
+		}
+	},
+	"database": {
+		"path": "./db",
+		"users_file": "./db/users.csv",
+		"sessions_file": "./db/sessions.csv",
+		"shopping_lists_dir": "./db/shopping-lists"
+	},
+	"auth": {
+		"bcrypt_rounds": 10,
+		"password_min_length": 8,
+		"session_expiry_days": 30,
+		"session_rotation_days": 7,
+		"jwt_secret": "your-secret-key-change-in-production"
+	},
+	"limits": {
+		"max_items_per_list": 1000,
+		"max_sections_per_list": 50,
+		"max_lists_per_user": 100,
+		"max_username_length": 32,
+		"max_list_name_length": 100,
+		"max_item_name_length": 200,
+		"max_section_name_length": 50
+	},
+	"rateLimit": {
+		"enabled": true,
+		"windowMs": 900000,
+		"max": 100,
+		"skipSuccessfulRequests": false
+	},
+	"logging": {
+		"level": "info",
+		"format": "json"
+	}
 }
 ```
 
 ### Environment-Specific Configs
 
 Create environment-specific files:
+
 - `defaults.development.json`
 - `defaults.production.json`
 - `defaults.staging.json`
@@ -1071,6 +1136,7 @@ Load based on `NODE_ENV` variable.
 ### Configuration Management Service
 
 The `configService.js` will:
+
 - Load defaults from JSON on startup
 - Provide getters for configuration values
 - Allow runtime updates via developer endpoints
@@ -1081,7 +1147,9 @@ The `configService.js` will:
 ## Developer UI
 
 ### Purpose
+
 Accessible only to users with `is_developer = true`, this web interface allows developers to:
+
 - View current configuration
 - Update configuration values
 - Reload configuration into running server
@@ -1089,6 +1157,7 @@ Accessible only to users with `is_developer = true`, this web interface allows d
 - Manage users (future enhancement)
 
 ### Access
+
 ```
 http://localhost:3001/developer
 ```
@@ -1096,26 +1165,28 @@ http://localhost:3001/developer
 ### Features (MVP-1)
 
 1. **Configuration Editor**
-   - Display current defaults.json values
-   - Allow inline editing of configuration
-   - Save button to persist changes
-   - Reload button to apply changes to running server
+    - Display current defaults.json values
+    - Allow inline editing of configuration
+    - Save button to persist changes
+    - Reload button to apply changes to running server
 
 2. **Status Dashboard**
-   - Server uptime
-   - Number of active users
-   - Recent activity log
+    - Server uptime
+    - Number of active users
+    - Recent activity log
 
 3. **Authentication**
-   - Login form (uses standard user credentials + is_developer flag)
-   - Session management
+    - Login form (uses standard user credentials + is_developer flag)
+    - Session management
 
 ### Technology Stack
+
 - Simple HTML/CSS/JavaScript (or lightweight framework)
 - Fetch API for communication with backend
 - LocalStorage for session persistence
 
 ### Directory Structure
+
 ```
 Web/developer-ui/
 ├── index.html
@@ -1138,6 +1209,7 @@ Web/developer-ui/
 **Coverage Target:** ≥ 80%
 
 **Key Areas:**
+
 - Authentication service (password hashing, token generation)
 - CSV service (file I/O, data parsing)
 - Data validation functions
@@ -1148,14 +1220,15 @@ Web/developer-ui/
 **Location:** `Web/server/tests/unit/`
 
 Example test file structure:
+
 ```javascript
 // authService.test.js
-describe('AuthService', () => {
-  describe('hashPassword', () => {
-    it('should return a hashed password different from input', () => {
-      // Test implementation
-    });
-  });
+describe("AuthService", () => {
+	describe("hashPassword", () => {
+		it("should return a hashed password different from input", () => {
+			// Test implementation
+		});
+	});
 });
 ```
 
@@ -1164,6 +1237,7 @@ describe('AuthService', () => {
 **Purpose:** Verify API endpoints work correctly with real CSV files
 
 **Key Endpoints to Test:**
+
 - Login/logout flow
 - Create/read/update/delete operations
 - Sync endpoint with conflict resolution
@@ -1175,6 +1249,7 @@ describe('AuthService', () => {
 ### Test Data Fixtures
 
 **Location:** `Web/server/tests/fixtures/`
+
 - Sample CSV data
 - Mock users
 - Pre-populated lists
@@ -1191,6 +1266,7 @@ npm run test:coverage      # Generate coverage report
 ### CI/CD Test Execution
 
 Tests automatically run on:
+
 - Pull request creation
 - Push to main branch
 - Before deployment
@@ -1218,11 +1294,14 @@ ShoppingListApp/
 ### GitHub Actions Workflows
 
 #### 1. Test Workflow (test.yml)
+
 Triggers on:
+
 - Pull requests
 - Push to `main` and `develop` branches
 
 Steps:
+
 1. Checkout code
 2. Setup Node.js
 3. Install dependencies
@@ -1233,13 +1312,16 @@ Steps:
 8. Post coverage as PR comment (using open source action like `romeovs/lcov-reporter-action`)
 
 #### 2. Lint Workflow (lint.yml)
+
 - ESLint for code quality
 - Prettier for formatting
 
 #### 3. Deployment Workflow (deploy.yml)
+
 Automated deployment via GitHub Actions SSH (triggers on push to `main` branch)
 
 **Workflow Steps:**
+
 1. Checkout code from repo
 2. SSH into production server
 3. Pull latest code to server
@@ -1300,49 +1382,50 @@ fi
 name: Deploy to Production
 
 on:
-  push:
-    branches:
-      - main
+    push:
+        branches:
+            - main
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: production
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || '22' }}
-          script: |
-            cd ${{ secrets.DEPLOY_DIR }}
-            bash .github/scripts/deploy.sh
-      
-      - name: Post deployment status
-        if: always()
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.sha,
-              state: '${{ job.status }}',
-              context: 'Deployment to Production',
-              target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-            });
+    deploy:
+        runs-on: ubuntu-latest
+        environment: production
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+
+            - name: Deploy via SSH
+              uses: appleboy/ssh-action@master
+              with:
+                  host: ${{ secrets.DEPLOY_HOST }}
+                  username: ${{ secrets.DEPLOY_USER }}
+                  key: ${{ secrets.DEPLOY_SSH_KEY }}
+                  port: ${{ secrets.DEPLOY_PORT || '22' }}
+                  script: |
+                      cd ${{ secrets.DEPLOY_DIR }}
+                      bash .github/scripts/deploy.sh
+
+            - name: Post deployment status
+              if: always()
+              uses: actions/github-script@v6
+              with:
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+                  script: |
+                      github.rest.repos.createCommitStatus({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        sha: context.sha,
+                        state: '${{ job.status }}',
+                        context: 'Deployment to Production',
+                        target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+                      });
 ```
 
 **GitHub Secrets Required:**
+
 - `DEPLOY_HOST`: Your server IP or domain
 - `DEPLOY_USER`: SSH user (e.g., `ubuntu`, `ec2-user`, `deploy`)
 - `DEPLOY_SSH_KEY`: Your private SSH key (paste entire key including `-----BEGIN PRIVATE KEY-----` lines)
@@ -1352,86 +1435,92 @@ jobs:
 **Server Setup (One-time Only):**
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/ShoppingListApp.git /path/to/ShoppingListApp
-   cd /path/to/ShoppingListApp
-   ```
+
+    ```bash
+    git clone https://github.com/yourusername/ShoppingListApp.git /path/to/ShoppingListApp
+    cd /path/to/ShoppingListApp
+    ```
 
 2. Generate SSH key pair for GitHub Actions (on your local machine):
-   ```bash
-   ssh-keygen -t ed25519 -f github-actions-deploy -C "github-actions-deploy"
-   # Don't set a passphrase
-   ```
+
+    ```bash
+    ssh-keygen -t ed25519 -f github-actions-deploy -C "github-actions-deploy"
+    # Don't set a passphrase
+    ```
 
 3. Add public key to server `authorized_keys`:
-   ```bash
-   cat github-actions-deploy.pub >> ~/.ssh/authorized_keys
-   chmod 600 ~/.ssh/authorized_keys
-   ```
+
+    ```bash
+    cat github-actions-deploy.pub >> ~/.ssh/authorized_keys
+    chmod 600 ~/.ssh/authorized_keys
+    ```
 
 4. Add private key to GitHub repo secrets:
-   - Go to repo Settings → Secrets and variables → Actions → New repository secret
-   - Name: `DEPLOY_SSH_KEY`
-   - Value: Paste entire contents of `github-actions-deploy` (private key)
+    - Go to repo Settings → Secrets and variables → Actions → New repository secret
+    - Name: `DEPLOY_SSH_KEY`
+    - Value: Paste entire contents of `github-actions-deploy` (private key)
 
 5. Install Node.js and PM2 on server:
-   ```bash
-   # Install Node.js (Ubuntu/Debian)
-   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-   sudo apt-get install -y nodejs
-   
-   # Install PM2 globally
-   sudo npm install -g pm2
-   
-   # Set up PM2 to start on reboot
-   pm2 startup
-   pm2 save
-   ```
+
+    ```bash
+    # Install Node.js (Ubuntu/Debian)
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+
+    # Install PM2 globally
+    sudo npm install -g pm2
+
+    # Set up PM2 to start on reboot
+    pm2 startup
+    pm2 save
+    ```
 
 6. Make deployment script executable:
-   ```bash
-   chmod +x /path/to/ShoppingListApp/.github/scripts/deploy.sh
-   ```
+
+    ```bash
+    chmod +x /path/to/ShoppingListApp/.github/scripts/deploy.sh
+    ```
 
 7. Create meaningful health check endpoint in your Express app (add to `Web/server/src/app.js`):
-   ```javascript
-   const fs = require('fs');
-   const config = require('./config/defaults.json');
-   
-   app.get('/api/v1/health', (req, res) => {
-     try {
-       // Verify CSV database directory is accessible
-       const dbPath = config.database.path || './db';
-       fs.accessSync(dbPath, fs.constants.R_OK | fs.constants.W_OK);
-       
-       res.status(200).json({
-         success: true,
-         data: {
-           status: 'healthy',
-           timestamp: new Date().toISOString(),
-           uptime: Math.floor(process.uptime()),
-           environment: process.env.NODE_ENV || 'development',
-           checks: {
-             database: 'ok',
-             csvAccess: 'ok'
-           }
-         }
-       });
-     } catch (error) {
-       res.status(503).json({
-         success: false,
-         data: null,
-         error: {
-           code: 'HEALTH_CHECK_FAILED',
-           message: 'Database or file system check failed'
-         },
-         timestamp: new Date().toISOString()
-       });
-     }
-   });
-   ```
+    ```javascript
+    const fs = require("fs");
+    const config = require("./config/defaults.json");
+
+    app.get("/api/v1/health", (req, res) => {
+    	try {
+    		// Verify CSV database directory is accessible
+    		const dbPath = config.database.path || "./db";
+    		fs.accessSync(dbPath, fs.constants.R_OK | fs.constants.W_OK);
+
+    		res.status(200).json({
+    			success: true,
+    			data: {
+    				status: "healthy",
+    				timestamp: new Date().toISOString(),
+    				uptime: Math.floor(process.uptime()),
+    				environment: process.env.NODE_ENV || "development",
+    				checks: {
+    					database: "ok",
+    					csvAccess: "ok",
+    				},
+    			},
+    		});
+    	} catch (error) {
+    		res.status(503).json({
+    			success: false,
+    			data: null,
+    			error: {
+    				code: "HEALTH_CHECK_FAILED",
+    				message: "Database or file system check failed",
+    			},
+    			timestamp: new Date().toISOString(),
+    		});
+    	}
+    });
+    ```
 
 **Deployment Flow:**
+
 1. Developer pushes code to `main` branch
 2. GitHub Actions automatically triggers `deploy.yml` workflow
 3. Workflow uses SSH to connect to your server
@@ -1441,6 +1530,7 @@ jobs:
 7. Deployment status posted back to GitHub commit
 
 **Infrastructure:**
+
 - **GitHub:** Repository and CI/CD orchestration
 - **GitHub Actions:** Automated deployment trigger and SSH orchestration
 - **Your Server:** Runs Node.js app via PM2
@@ -1478,6 +1568,7 @@ jobs:
 Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 Example:
+
 ```
 feat(auth): implement session token rotation
 
@@ -1492,6 +1583,7 @@ Closes #42
 ## Development Phases
 
 ### Phase 0: Project Setup (Week 1)
+
 - [x] Initialize GitHub repository (monorepo structure)
 - [x] Create project folder structure
 - [x] Set up Node.js project with dependencies
@@ -1501,6 +1593,7 @@ Closes #42
 - [x] Create .gitignore and .env.example
 
 ### Phase 1: Backend Core (Weeks 2-3)
+
 - [ ] Implement Express app structure
 - [ ] Create CSV file I/O service
 - [ ] Implement authentication (login/register/logout)
@@ -1511,6 +1604,7 @@ Closes #42
 - [ ] Error handling middleware
 
 ### Phase 2: Backend API - Lists & Sections (Weeks 4-5)
+
 - [ ] List CRUD endpoints
 - [ ] Section CRUD endpoints
 - [ ] Authorization middleware
@@ -1519,6 +1613,7 @@ Closes #42
 - [ ] CSV operations for lists/sections
 
 ### Phase 3: Backend API - Items & Sync (Weeks 6-7)
+
 - [ ] Item CRUD endpoints
 - [ ] Item completion toggle
 - [ ] Sync endpoint with conflict resolution
@@ -1527,6 +1622,7 @@ Closes #42
 - [ ] Sync logic unit tests
 
 ### Phase 4: Backend Configuration & Developer UI (Week 8)
+
 - [ ] Configuration service
 - [ ] Developer endpoints (get/update/reload config)
 - [ ] Developer authentication check
@@ -1535,6 +1631,7 @@ Closes #42
 - [ ] API integration for config management
 
 ### Phase 5: Android Frontend - Auth & Lists (Weeks 9-10)
+
 - [ ] Login screen UI
 - [ ] API client setup (Retrofit)
 - [ ] Session token storage
@@ -1543,6 +1640,7 @@ Closes #42
 - [ ] List creation and deletion
 
 ### Phase 6: Android Frontend - Items & Sync (Weeks 11-12)
+
 - [ ] Shopping list detail screen
 - [ ] Item management UI
 - [ ] Section management UI
@@ -1551,6 +1649,7 @@ Closes #42
 - [ ] Offline queue handling
 
 ### Phase 7: Android Frontend - Profile & Polish (Week 13)
+
 - [ ] User profile screen
 - [ ] Password change functionality
 - [ ] Error handling and user feedback
@@ -1558,6 +1657,7 @@ Closes #42
 - [ ] Performance optimization
 
 ### Phase 8: Testing & Deployment (Week 14-15)
+
 - [ ] End-to-end testing
 - [ ] Load testing
 - [ ] Security audit
@@ -1566,6 +1666,7 @@ Closes #42
 - [ ] Final code review
 
 ### Phase 9: MVP-1 Release (Week 16)
+
 - [ ] Final testing and bug fixes
 - [ ] Release notes
 - [ ] Public launch
@@ -1577,25 +1678,25 @@ Closes #42
 ### MVP-2: Web UI & Enhanced Features
 
 1. **Web-Based Shopping List UI**
-   - React/Vue component-based interface
-   - Responsive design for desktop and tablet
-   - Real-time collaboration (WebSockets)
-   - Share lists with other users
+    - React/Vue component-based interface
+    - Responsive design for desktop and tablet
+    - Real-time collaboration (WebSockets)
+    - Share lists with other users
 
 2. **Password Reset Functionality**
-   - Email integration for reset links
-   - One-time password (OTP) links
-   - Email verification
-   - Security considerations:
-     - Token expiration (15 minutes)
-     - Token invalidation after use
-     - Rate limiting on reset requests
+    - Email integration for reset links
+    - One-time password (OTP) links
+    - Email verification
+    - Security considerations:
+        - Token expiration (15 minutes)
+        - Token invalidation after use
+        - Rate limiting on reset requests
 
 3. **Advanced Developer Dashboard**
-   - User management interface
-   - System monitoring and metrics
-   - Audit logs
-   - Performance analytics
+    - User management interface
+    - System monitoring and metrics
+    - Audit logs
+    - Performance analytics
 
 ### MVP-3 & Beyond
 
@@ -1613,15 +1714,15 @@ Closes #42
 
 ## Key Decisions & Rationale
 
-| Decision | Rationale |
-|----------|-----------|
-| CSV-based database | Simple, no external dependencies, easy to version control and backup |
-| Node.js/Express backend | Quick to set up, extensive npm ecosystem, good for REST APIs |
-| Android native (Kotlin) | Better performance and user experience vs. cross-platform solutions |
-| JWT for sessions | Stateless, scalable, suitable for REST APIs |
-| Session token rotation | Enhanced security best practice |
-| Per-user CSV files | Better scalability than single-file database, easier user data isolation |
-| Monorepo structure | Easier project management, shared documentation, atomic commits |
+| Decision                | Rationale                                                                |
+| ----------------------- | ------------------------------------------------------------------------ |
+| CSV-based database      | Simple, no external dependencies, easy to version control and backup     |
+| Node.js/Express backend | Quick to set up, extensive npm ecosystem, good for REST APIs             |
+| Android native (Kotlin) | Better performance and user experience vs. cross-platform solutions      |
+| JWT for sessions        | Stateless, scalable, suitable for REST APIs                              |
+| Session token rotation  | Enhanced security best practice                                          |
+| Per-user CSV files      | Better scalability than single-file database, easier user data isolation |
+| Monorepo structure      | Easier project management, shared documentation, atomic commits          |
 
 ---
 
@@ -1649,8 +1750,8 @@ Closes #42
 
 ## Document History
 
-| Date | Author | Changes |
-|------|--------|---------|
+| Date       | Author       | Changes              |
+| ---------- | ------------ | -------------------- |
 | 2026-07-04 | Project Team | Initial plan created |
 
 ---

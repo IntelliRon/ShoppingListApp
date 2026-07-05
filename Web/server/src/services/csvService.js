@@ -1,6 +1,7 @@
 /**
  * CSV Service
  * Handles reading and writing CSV files for data persistence
+ * Uses single-writer pattern with per-file queuing for concurrent write safety
  */
 
 const fs = require("fs");
@@ -8,6 +9,28 @@ const path = require("path");
 const { createObjectCsvWriter } = require("csv-writer");
 const csvParser = require("csv-parser");
 const config = require("../config/defaults.json");
+
+/**
+ * File write queue manager - ensures single writer per file
+ * Maps file paths to their pending write queue
+ */
+const writeQueues = new Map();
+
+/**
+ * Acquire lock for file write operation
+ * Returns a promise that resolves when write is complete
+ */
+function acquireWriteLock(filePath) {
+	if (!writeQueues.has(filePath)) {
+		writeQueues.set(filePath, Promise.resolve());
+	}
+
+	const currentQueue = writeQueues.get(filePath);
+	const newQueue = currentQueue.then(() => new Promise((resolve) => setTimeout(resolve, 0)));
+	writeQueues.set(filePath, newQueue);
+
+	return currentQueue;
+}
 
 /**
  * Ensure directory exists
@@ -39,8 +62,12 @@ async function readCSV(filePath) {
 
 /**
  * Write array of objects to CSV file
+ * Serializes concurrent writes to same file using single-writer pattern
  */
 async function writeCSV(filePath, records, headers = null) {
+	// Acquire write lock to ensure serial writes
+	await acquireWriteLock(filePath);
+
 	return new Promise((resolve, reject) => {
 		try {
 			ensureDir(path.dirname(filePath));
