@@ -1,6 +1,6 @@
 # Shopping List App - Comprehensive Project Plan
 
-**Project Date:** 2026-07-04  
+**Project Date:** 2026-07-05  
 **Status:** Phase 1 - Backend Core (In Progress)  
 **Monorepo Structure:** App (Android) + Web (Backend/Developer UI)
 
@@ -1750,15 +1750,17 @@ Closes #42
 
 ## Key Decisions & Rationale
 
-| Decision                | Rationale                                                                |
-| ----------------------- | ------------------------------------------------------------------------ |
-| CSV-based database      | Simple, no external dependencies, easy to version control and backup     |
-| Node.js/Express backend | Quick to set up, extensive npm ecosystem, good for REST APIs             |
-| Android native (Kotlin) | Better performance and user experience vs. cross-platform solutions      |
-| JWT for sessions        | Stateless, scalable, suitable for REST APIs                              |
-| Token rotation (MVP-2)  | Enhanced security best practice — deferred to Phase 2 for MVP-1 focus    |
-| Per-user CSV files      | Better scalability than single-file database, easier user data isolation |
-| Monorepo structure      | Easier project management, shared documentation, atomic commits          |
+| Decision                   | Rationale                                                                |
+| -------------------------- | ------------------------------------------------------------------------ |
+| CSV-based database         | Simple, no external dependencies, easy to version control and backup     |
+| Node.js/Express backend    | Quick to set up, extensive npm ecosystem, good for REST APIs             |
+| Android native (Kotlin)    | Better performance and user experience vs. cross-platform solutions      |
+| JWT for sessions           | Stateless, scalable, suitable for REST APIs                              |
+| Token rotation (MVP-2)     | Enhanced security best practice — deferred to Phase 2 for MVP-1 focus    |
+| Per-user CSV files         | Better scalability than single-file database, easier user data isolation |
+| Monorepo structure         | Easier project management, shared documentation, atomic commits          |
+| AsyncLocalStorage tracking | Ensures external reads wait for writes while nested reads avoid deadlock |
+| Atomic read-then-write     | All CSV operations (append, update, delete) use per-file queuing         |
 
 ---
 
@@ -1786,9 +1788,10 @@ Closes #42
 
 ## Document History
 
-| Date       | Author       | Changes              |
-| ---------- | ------------ | -------------------- |
-| 2026-07-04 | Project Team | Initial plan created |
+| Date       | Author       | Changes                                                                                                                                                             |
+| ---------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-05 | IntelliRon   | Fixed CSV service atomicity: implemented AsyncLocalStorage for nested read detection, ensures external reads wait for writes, added comprehensive integration tests |
+| 2026-07-04 | Project Team | Initial plan created                                                                                                                                                |
 
 ---
 

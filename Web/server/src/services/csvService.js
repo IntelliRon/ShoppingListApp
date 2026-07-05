@@ -2,13 +2,22 @@
  * CSV Service
  * Handles reading and writing CSV files for data persistence
  * Uses single-writer pattern with per-file queuing for concurrent write safety
+ * Nested reads (within an enqueued operation) skip queue wait to avoid deadlock
+ * External reads always wait for pending writes to ensure consistency
  */
 
 const fs = require("fs");
 const path = require("path");
 const { createObjectCsvWriter } = require("csv-writer");
 const csvParser = require("csv-parser");
+const { AsyncLocalStorage } = require("async_hooks");
 const config = require("../config/defaults.json");
+
+/**
+ * AsyncLocalStorage for tracking which file's operation is currently executing
+ * Allows nested reads to distinguish themselves from external reads
+ */
+const operationContext = new AsyncLocalStorage();
 
 /**
  * File write queue manager - ensures single writer per file
@@ -28,6 +37,7 @@ const activeOperations = new Map();
  * while the returned promise can reject, allowing subsequent operations to continue
  * even after a failure and preventing queue orphaning
  * activeOperations is incremented when operation STARTS (not enqueued) to avoid race condition
+ * operationContext tracks the executing filePath so nested reads can distinguish themselves from external reads
  */
 function enqueueFileOperation(filePath, operation) {
 	if (!writeQueues.has(filePath)) {
@@ -40,8 +50,11 @@ function enqueueFileOperation(filePath, operation) {
 	const operationChain = currentTail.then(() => {
 		// Mark operation as active (starts executing)
 		activeOperations.set(filePath, (activeOperations.get(filePath) || 0) + 1);
-		return operation().then(
-			(result) => {
+
+		// Run operation within AsyncLocalStorage context so nested reads can detect they're nested
+		return operationContext.run(filePath, async () => {
+			try {
+				const result = await operation();
 				// Decrement active operation count on success
 				const count = (activeOperations.get(filePath) || 1) - 1;
 				if (count > 0) {
@@ -50,8 +63,7 @@ function enqueueFileOperation(filePath, operation) {
 					activeOperations.delete(filePath);
 				}
 				return result;
-			},
-			(error) => {
+			} catch (error) {
 				// Decrement active operation count on failure
 				const count = (activeOperations.get(filePath) || 1) - 1;
 				if (count > 0) {
@@ -61,7 +73,7 @@ function enqueueFileOperation(filePath, operation) {
 				}
 				throw error;
 			}
-		);
+		});
 	});
 
 	// Create non-poisoning tail: always resolves to prevent blocking subsequent operations
@@ -86,12 +98,16 @@ function ensureDir(dir) {
 /**
  * Read CSV file and return array of objects
  * Waits for pending writes to complete before reading to avoid stale/partial data
- * (unless called from within an enqueued operation, to avoid deadlock)
+ * (unless called from within an enqueued operation on the same file, to avoid deadlock)
  */
 async function readCSV(filePath) {
-	// Wait for any pending writes to complete, but only if we're not already inside an operation
+	// Determine if this read is nested (called from within an operation on this file)
+	const currentContext = operationContext.getStore();
+	const isNestedRead = currentContext === filePath;
+
+	// Wait for any pending writes ONLY if we're not already inside an operation on this file
 	// (to avoid deadlock where a read inside an enqueued write waits for itself)
-	if (writeQueues.has(filePath) && !activeOperations.has(filePath)) {
+	if (writeQueues.has(filePath) && !isNestedRead) {
 		try {
 			await writeQueues.get(filePath);
 		} catch (error) {
