@@ -10,6 +10,7 @@ jest.mock("../../src/services/csvService", () => ({
 	readCSV: jest.fn(),
 	findRecord: jest.fn(),
 	appendCSV: jest.fn(),
+	appendWithDuplicateCheck: jest.fn(),
 	updateRecords: jest.fn(),
 }));
 
@@ -185,9 +186,8 @@ describe("AuthService", () => {
 
 	describe("registerUser", () => {
 		it("should register user successfully", async () => {
-			// Mock readCSV to return empty list (no existing users)
-			csvService.readCSV.mockResolvedValueOnce([]);
-			csvService.appendCSV.mockImplementationOnce(async () => {});
+			// Mock appendWithDuplicateCheck to succeed (no duplicates)
+			csvService.appendWithDuplicateCheck.mockResolvedValueOnce(undefined);
 
 			const result = await authService.registerUser(
 				"john_doe",
@@ -200,22 +200,14 @@ describe("AuthService", () => {
 			expect(result).toHaveProperty("email", "john@example.com");
 			expect(result).toHaveProperty("token");
 			expect(result).toHaveProperty("created_at");
-			expect(csvService.appendCSV).toHaveBeenCalled();
+			expect(csvService.appendWithDuplicateCheck).toHaveBeenCalled();
 		});
 
 		it("should reject if username already exists", async () => {
-			// Mock readCSV to return existing user with username
-			csvService.readCSV.mockResolvedValueOnce([
-				{
-					user_id: "u_existing",
-					username: "john_doe",
-					email: "existing@example.com",
-					password_hash: "hash",
-					is_developer: "false",
-					created_at: "2026-07-05T00:00:00Z",
-					updated_at: "2026-07-05T00:00:00Z",
-				},
-			]);
+			// Mock appendWithDuplicateCheck to throw username exists error
+			csvService.appendWithDuplicateCheck.mockRejectedValueOnce(
+				new Error("Username already exists")
+			);
 
 			await expect(
 				authService.registerUser("john_doe", "password123", "john@example.com")
@@ -223,18 +215,10 @@ describe("AuthService", () => {
 		});
 
 		it("should reject if email already registered", async () => {
-			// Mock readCSV to return existing user with different username but same email
-			csvService.readCSV.mockResolvedValueOnce([
-				{
-					user_id: "u_existing",
-					username: "anotheruser",
-					email: "john@example.com",
-					password_hash: "hash",
-					is_developer: "false",
-					created_at: "2026-07-05T00:00:00Z",
-					updated_at: "2026-07-05T00:00:00Z",
-				},
-			]);
+			// Mock appendWithDuplicateCheck to throw email exists error
+			csvService.appendWithDuplicateCheck.mockRejectedValueOnce(
+				new Error("Email already registered")
+			);
 
 			await expect(
 				authService.registerUser("john_doe", "password123", "john@example.com")

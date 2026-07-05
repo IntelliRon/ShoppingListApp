@@ -175,27 +175,12 @@ async function registerUser(username, password, email) {
 		updated_at: new Date().toISOString(),
 	};
 
-	// Check for duplicates and insert atomically within the queue lock
-	// This prevents two concurrent registrations from both passing checks
-	let allUsers = [];
-	try {
-		allUsers = await csvService.readCSV(USERS_FILE);
-	} catch (error) {
-		// File may not exist yet, that's ok
-	}
-
-	// Check if user already exists by username
-	if (allUsers.some((u) => u.username === username)) {
-		throw new Error("Username already exists");
-	}
-
-	// Check if email already exists
-	if (allUsers.some((u) => u.email === email)) {
-		throw new Error("Email already registered");
-	}
-
-	// Save to CSV (enqueued operation ensures single-writer safety)
-	await csvService.appendCSV(USERS_FILE, [user]);
+	// Register with atomic duplicate check + insert under per-file lock
+	// The entire read+check+write happens atomically in one enqueued operation
+	await csvService.appendWithDuplicateCheck(USERS_FILE, [user], {
+		usernameFn: (u) => u.username === username,
+		emailFn: (u) => u.email === email,
+	});
 
 	// Generate token
 	const token = generateToken(userId);

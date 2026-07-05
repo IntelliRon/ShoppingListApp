@@ -19,7 +19,7 @@ const writeQueues = new Map();
 /**
  * Enqueue an operation to execute after all previous writes complete
  * Chains the operation to the existing queue and updates the queue
- * Catches errors to prevent queue poisoning
+ * Catches errors to prevent queue poisoning and ensure next operations run
  */
 function enqueueFileOperation(filePath, operation) {
 	if (!writeQueues.has(filePath)) {
@@ -27,13 +27,28 @@ function enqueueFileOperation(filePath, operation) {
 	}
 
 	const currentQueue = writeQueues.get(filePath);
+	// Chain from .catch() to ensure new operation runs even after a prior failure
 	const newQueue = currentQueue
 		.then(() => operation())
 		.catch((error) => {
-			// Reset queue to resolved state to allow future operations
+			// After a failure, reset queue but rethrow to propagate to caller
 			writeQueues.set(filePath, Promise.resolve());
 			throw error;
-		});
+		})
+		// Chain a handler that resets queue on success (cleanup unbounded Map growth)
+		.then(
+			(result) => {
+				// On success, check if queue is now idle and clean up
+				if (writeQueues.get(filePath) === newQueue) {
+					writeQueues.set(filePath, Promise.resolve());
+				}
+				return result;
+			},
+			(error) => {
+				// Error already handled above, just rethrow
+				throw error;
+			}
+		);
 	writeQueues.set(filePath, newQueue);
 
 	return newQueue;
@@ -250,11 +265,13 @@ async function deleteRecords(filePath, filterFn) {
 			try {
 				ensureDir(path.dirname(filePath));
 
-				// Always write the file to properly truncate/clear it
+				// Preserve original schema: if all records deleted, use headers from original records
 				const csvHeaders =
 					remaining.length > 0
 						? Object.keys(remaining[0]).map((key) => ({ id: key, title: key }))
-						: [{ id: "id", title: "id" }];
+						: records.length > 0
+							? Object.keys(records[0]).map((key) => ({ id: key, title: key }))
+							: [{ id: "id", title: "id" }];
 
 				const writer = createObjectCsvWriter({
 					path: filePath,
@@ -263,6 +280,66 @@ async function deleteRecords(filePath, filterFn) {
 
 				writer
 					.writeRecords(remaining)
+					.then(() => resolve())
+					.catch(reject);
+			} catch (error) {
+				reject(error);
+			}
+		});
+	});
+}
+
+/**
+ * Atomically check for duplicates and append records
+ * The entire read+check+write operation is protected by the per-file lock
+ * This prevents two concurrent appends from both passing duplicate checks
+ */
+async function appendWithDuplicateCheck(filePath, records, checks) {
+	return enqueueFileOperation(filePath, async () => {
+		// Read all existing records within the lock
+		const existing = await readCSV(filePath);
+
+		// Check for duplicates within the locked section
+		for (const record of records) {
+			if (checks.usernameFn && existing.some(checks.usernameFn)) {
+				throw new Error("Username already exists");
+			}
+			if (checks.emailFn && existing.some(checks.emailFn)) {
+				throw new Error("Email already registered");
+			}
+		}
+
+		// Append new records (still within the lock)
+		const updated = [...existing, ...records];
+
+		return new Promise((resolve, reject) => {
+			try {
+				ensureDir(path.dirname(filePath));
+
+				if (!updated || updated.length === 0) {
+					const csvHeaders = [{ id: "id", title: "id" }];
+					const writer = createObjectCsvWriter({
+						path: filePath,
+						header: csvHeaders,
+					});
+					writer
+						.writeRecords([])
+						.then(() => resolve())
+						.catch(reject);
+					return;
+				}
+
+				const csvHeaders = Object.keys(updated[0]).map((key) => ({
+					id: key,
+					title: key,
+				}));
+				const writer = createObjectCsvWriter({
+					path: filePath,
+					header: csvHeaders,
+				});
+
+				writer
+					.writeRecords(updated)
 					.then(() => resolve())
 					.catch(reject);
 			} catch (error) {
@@ -289,6 +366,7 @@ module.exports = {
 	readCSV,
 	writeCSV,
 	appendCSV,
+	appendWithDuplicateCheck,
 	findRecords,
 	findRecord,
 	updateRecords,
