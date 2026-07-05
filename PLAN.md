@@ -1,7 +1,7 @@
 # Shopping List App - Comprehensive Project Plan
 
 **Project Date:** 2026-07-04  
-**Status:** Phase 0 - Project Setup (In Progress)  
+**Status:** Phase 1 - Backend Core (In Progress)  
 **Monorepo Structure:** App (Android) + Web (Backend/Developer UI)
 
 ---
@@ -1594,14 +1594,18 @@ Closes #42
 
 ### Phase 1: Backend Core (Weeks 2-3)
 
-- [ ] Implement Express app structure
-- [ ] Create CSV file I/O service
-- [ ] Implement authentication (login/register/logout)
-- [ ] Password hashing with bcrypt
-- [ ] JWT/session token generation
-- [ ] User database (users.csv)
-- [ ] Unit tests for auth service
-- [ ] Error handling middleware
+**Status:** In Progress (Authentication layer complete 2026-07-05)
+
+- [x] Implement Express app structure
+- [x] Create CSV file I/O service (with single-writer pattern for concurrency)
+- [x] Implement authentication (login/register/logout)
+- [x] Password hashing with bcrypt
+- [x] JWT/session token generation
+- [x] User database (users.csv)
+- [x] Unit tests for auth service (43/43 tests passing)
+- [x] Authentication middleware (requireAuth, requireDeveloper, optionalAuth)
+- [x] Authentication routes (register, login, logout, change-password)
+- [ ] Error handling middleware (next task)
 
 ### Phase 2: Backend API - Lists & Sections (Weeks 4-5)
 
@@ -1697,6 +1701,33 @@ Closes #42
     - System monitoring and metrics
     - Audit logs
     - Performance analytics
+
+### Token Blacklist & Enhanced Logout (Future Consideration)
+
+**Current MVP Approach:**
+
+- Logout invalidation handled on client side (token discarded)
+- No server-side token blacklist maintained
+- Simple and scalable for initial release
+
+**Future Enhancement Options:**
+
+1. **Redis-based blacklist** - Fast in-memory token invalidation
+    - Store revoked tokens with expiration matching JWT exp claim
+    - Check blacklist on protected endpoints
+    - Suitable for medium-scale deployments
+
+2. **Database-backed blacklist** - Persistent token tracking
+    - Maintain `revoked_tokens.csv` or similar
+    - Trade-off: Simpler than Redis but slower checks
+    - Good for audit compliance requirements
+
+3. **Short-lived refresh tokens** - Enhanced security pattern
+    - Short access tokens (15 min) + long refresh tokens (30 days)
+    - Requires token refresh mechanism
+    - Reduces token blacklist size and check frequency
+
+**Decision:** Deferred to MVP-2. Current JWT-only approach sufficient for MVP-1 as users can clear token client-side.
 
 ### MVP-3 & Beyond
 
