@@ -253,5 +253,64 @@ describe("Authentication API", () => {
 			expect(response.status).toBe(401);
 			expect(response.body.success).toBe(false);
 		});
+
+		it("should reject invalid new password", async () => {
+			const response = await request(app)
+				.post("/api/v1/auth/change-password")
+				.set("Authorization", `Bearer ${authToken}`)
+				.send({
+					old_password: NEW_PASSWORD,
+					new_password: "short",
+				});
+
+			expect(response.status).toBe(400);
+			expect(response.body.success).toBe(false);
+		});
+
+		it("should reject with invalid token", async () => {
+			const response = await request(app)
+				.post("/api/v1/auth/change-password")
+				.set("Authorization", "Bearer invalid.token.here")
+				.send({
+					old_password: NEW_PASSWORD,
+					new_password: "validNewPassword123",
+				});
+
+			expect(response.status).toBe(401);
+			expect(response.body.success).toBe(false);
+		});
+	});
+
+	describe("Additional Validation Tests", () => {
+		it("should reject registration with missing email", async () => {
+			const response = await request(app).post("/api/v1/auth/register").send({
+				username: "newuser",
+				password: "validPassword123",
+			});
+
+			expect(response.status).toBe(400);
+			expect(response.body.error.code).toBe("VALIDATION_ERROR");
+		});
+
+		it("should reject login with missing password", async () => {
+			const response = await request(app).post("/api/v1/auth/login").send({
+				username: "testuser",
+			});
+
+			expect(response.status).toBe(400);
+			expect(response.body.error.code).toBe("VALIDATION_ERROR");
+		});
+
+		it("should reject change-password with missing fields", async () => {
+			const response = await request(app)
+				.post("/api/v1/auth/change-password")
+				.set("Authorization", "Bearer some.token")
+				.send({});
+
+			// Missing auth causes 401, then missing fields would cause 400
+			// Since auth validation happens first, we expect 401
+			expect(response.status).toBe(401);
+			expect(response.body.success).toBe(false);
+		});
 	});
 });
