@@ -42,21 +42,25 @@ Before pushing code to GitHub:
 
 The [PLAN.md](/PLAN.md) file is a living document and must be kept current.
 
-### Update on Every Contribution
+### Update on PLAN Changes Only
 
-- **Last Modified Date:** Update the date in "Project Date" field at the top
+The Document History tracks **changes to the PLAN itself**, not general code work:
+
+- **Last Modified Date:** Update the date in "Project Date" field at the top when the PLAN changes
 - **Implementation Status:** If completing a phase or feature, update the "Status" field
-- **Key Decisions:** Record any architectural or implementation decisions in the Key Decisions & Rationale table with a brief rationale
-- **Document History:** Add an entry to the Document History table with:
+- **Key Decisions:** Record architectural/design decisions that impact the specification
+- **Document History:** Add an entry **only when the PLAN content meaningfully changes** (specs, requirements, status updates, architectural decisions), not for routine code implementations
     - Date (YYYY-MM-DD)
     - Your GitHub username
-    - Summary of changes (e.g., "Added authService implementation", "Updated Phase 1 status")
+    - Summary of changes to the PLAN itself
 
 ### Example History Entry
 
 ```
-| 2026-07-05 | IntelliRon   | Completed authService with bcrypt hashing |
+| 2026-07-05 | IntelliRon   | Updated Phase 1 status and added authentication architecture decisions |
 ```
+
+**Note:** General code work (bug fixes, feature implementations, PR comment resolutions) should NOT be added to the Document History. Only log changes that affect the PLAN specification or requirements.
 
 ---
 
