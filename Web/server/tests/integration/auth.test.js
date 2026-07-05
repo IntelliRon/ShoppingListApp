@@ -47,6 +47,9 @@ describe("Authentication API", () => {
 		} catch (error) {
 			console.log("Cleanup note:", error.message);
 		}
+
+		// Clear the environment variable to prevent leaking to other test files
+		delete process.env.TEST_USERS_FILE;
 	});
 
 	describe("POST /api/v1/auth/register", () => {

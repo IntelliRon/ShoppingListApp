@@ -17,6 +17,12 @@ const config = require("../config/defaults.json");
 const writeQueues = new Map();
 
 /**
+ * Track operations currently executing to avoid deadlock in readCSV
+ * Maps file paths to number of active operations
+ */
+const activeOperations = new Map();
+
+/**
  * Enqueue an operation to execute after all previous writes complete
  * Chains the operation to the existing queue and updates the queue
  * Catches errors to prevent queue poisoning and ensure next operations run
@@ -25,6 +31,9 @@ function enqueueFileOperation(filePath, operation) {
 	if (!writeQueues.has(filePath)) {
 		writeQueues.set(filePath, Promise.resolve());
 	}
+
+	// Mark operation as active
+	activeOperations.set(filePath, (activeOperations.get(filePath) || 0) + 1);
 
 	const currentQueue = writeQueues.get(filePath);
 	// Chain from .catch() to ensure new operation runs even after a prior failure
@@ -38,6 +47,13 @@ function enqueueFileOperation(filePath, operation) {
 		// Chain a handler that resets queue on success (cleanup unbounded Map growth)
 		.then(
 			(result) => {
+				// Decrement active operation count
+				const count = (activeOperations.get(filePath) || 1) - 1;
+				if (count > 0) {
+					activeOperations.set(filePath, count);
+				} else {
+					activeOperations.delete(filePath);
+				}
 				// On success, check if queue is now idle and clean up
 				if (writeQueues.get(filePath) === newQueue) {
 					writeQueues.set(filePath, Promise.resolve());
@@ -45,6 +61,13 @@ function enqueueFileOperation(filePath, operation) {
 				return result;
 			},
 			(error) => {
+				// Decrement active operation count
+				const count = (activeOperations.get(filePath) || 1) - 1;
+				if (count > 0) {
+					activeOperations.set(filePath, count);
+				} else {
+					activeOperations.delete(filePath);
+				}
 				// Error already handled above, just rethrow
 				throw error;
 			}
@@ -65,8 +88,20 @@ function ensureDir(dir) {
 
 /**
  * Read CSV file and return array of objects
+ * Waits for pending writes to complete before reading to avoid stale/partial data
+ * (unless called from within an enqueued operation, to avoid deadlock)
  */
 async function readCSV(filePath) {
+	// Wait for any pending writes to complete, but only if we're not already inside an operation
+	// (to avoid deadlock where a read inside an enqueued write waits for itself)
+	if (writeQueues.has(filePath) && !activeOperations.has(filePath)) {
+		try {
+			await writeQueues.get(filePath);
+		} catch (error) {
+			// Ignore errors from the write queue; we'll attempt to read anyway
+		}
+	}
+
 	return new Promise((resolve, reject) => {
 		if (!fs.existsSync(filePath)) {
 			resolve([]);

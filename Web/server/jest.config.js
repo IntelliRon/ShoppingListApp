@@ -3,6 +3,7 @@ module.exports = {
 	coveragePathIgnorePatterns: ["/node_modules/"],
 	testMatch: ["**/tests/**/*.test.js"],
 	collectCoverageFrom: ["src/**/*.js", "!src/index.js"],
+	coverageReporters: ["text", "lcov", "json-summary", "json"],
 	coverageThreshold: {
 		global: {
 			branches: 70,

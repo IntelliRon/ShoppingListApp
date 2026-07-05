@@ -6,6 +6,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const path = require("path");
+const crypto = require("crypto");
 const csvService = require("./csvService");
 const config = require("../config/defaults.json");
 
@@ -15,13 +16,8 @@ try {
 	const uuidModule = require("uuid");
 	uuidv4 = uuidModule.v4 || uuidModule.default?.v4;
 } catch (error) {
-	// Fallback to simple UUID v4 generation
-	uuidv4 = () =>
-		"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-			const r = (Math.random() * 16) | 0;
-			const v = c === "x" ? r : (r & 0x3) | 0x8;
-			return v.toString(16);
-		});
+	// Fallback to Node.js built-in crypto.randomUUID() for cryptographically secure IDs
+	uuidv4 = () => crypto.randomUUID();
 }
 
 const USERS_FILE =
