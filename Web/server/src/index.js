@@ -16,6 +16,7 @@ csvService.initializeDatabase();
 
 // Start server
 const server = app.listen(PORT, () => {
+	// eslint-disable-next-line no-console
 	console.log(
 		`[${new Date().toISOString()}] Shopping List API started on port ${PORT} (${ENV} environment)`
 	);
@@ -23,16 +24,20 @@ const server = app.listen(PORT, () => {
 
 // Graceful shutdown
 process.on("SIGTERM", () => {
+	// eslint-disable-next-line no-console
 	console.log("[SIGTERM] Shutting down gracefully...");
 	server.close(() => {
+		// eslint-disable-next-line no-console
 		console.log("Server closed");
 		process.exit(0);
 	});
 });
 
 process.on("SIGINT", () => {
+	// eslint-disable-next-line no-console
 	console.log("[SIGINT] Shutting down gracefully...");
 	server.close(() => {
+		// eslint-disable-next-line no-console
 		console.log("Server closed");
 		process.exit(0);
 	});

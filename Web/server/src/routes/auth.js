@@ -40,6 +40,7 @@ router.post("/register", async (req, res) => {
 			timestamp: new Date().toISOString(),
 		});
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("[Auth Error]", error.message);
 
 		// Return generic conflict message for both username and email conflicts
@@ -115,6 +116,7 @@ router.post("/login", async (req, res) => {
 			timestamp: new Date().toISOString(),
 		});
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("[Auth Error]", error.message);
 
 		if (error.message.includes("Invalid username or password")) {
@@ -184,6 +186,7 @@ router.post("/change-password", requireAuth, async (req, res) => {
 			timestamp: new Date().toISOString(),
 		});
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("[Auth Error]", error.message);
 
 		if (error.message.includes("Current password is incorrect")) {

@@ -31,6 +31,7 @@ if (config.rateLimit.enabled) {
 // Request logging middleware (development)
 if (process.env.NODE_ENV === "development") {
 	app.use((req, res, next) => {
+		// eslint-disable-next-line no-console
 		console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
 		next();
 	});
@@ -60,6 +61,7 @@ app.get("/api/v1/health", (req, res) => {
 			},
 		});
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("[Health Check Error]", error.message);
 		res.status(503).json({
 			success: false,
@@ -94,6 +96,7 @@ app.use((req, res) => {
 
 // Error Handler
 app.use((err, req, res, _next) => {
+	// eslint-disable-next-line no-console
 	console.error("[Error]", err.message);
 
 	const statusCode = err.statusCode || 500;

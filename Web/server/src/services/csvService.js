@@ -300,13 +300,11 @@ async function appendWithDuplicateCheck(filePath, records, checks) {
 		const existing = await readCSV(filePath);
 
 		// Check for duplicates within the locked section
-		for (const record of records) {
-			if (checks.usernameFn && existing.some(checks.usernameFn)) {
-				throw new Error("Username already exists");
-			}
-			if (checks.emailFn && existing.some(checks.emailFn)) {
-				throw new Error("Email already registered");
-			}
+		if (checks.usernameFn && existing.some(checks.usernameFn)) {
+			throw new Error("Username already exists");
+		}
+		if (checks.emailFn && existing.some(checks.emailFn)) {
+			throw new Error("Email already registered");
 		}
 
 		// Append new records (still within the lock)
@@ -359,6 +357,7 @@ function initializeDatabase() {
 	ensureDir(dbPath);
 	ensureDir(shoppingListsDir);
 
+	// eslint-disable-next-line no-console
 	console.log(`[CSV Service] Database initialized at ${dbPath}`);
 }
 
