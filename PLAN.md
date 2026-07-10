@@ -1097,6 +1097,7 @@ Web/server/src/config/defaults.json
 	"database": {
 		"path": "./db",
 		"users_file": "./db/users.csv",
+		"blacklist_file": "./db/token-blacklist.csv",
 		"sessions_file": "./db/sessions.csv",
 		"shopping_lists_dir": "./db/shopping-lists"
 	},
@@ -1713,14 +1714,14 @@ Closes #42
 **Current Implementation:**
 
 - Server-side token blacklist using CSV persistence (`token-blacklist.csv`)
-- Logout invalidation by adding token jti claim to blacklist file
+- Logout invalidation by adding a SHA-256 hash of the token to the blacklist file
 - requireAuth middleware checks blacklist on every request
 - Simple and effective for initial release
 
 **How It Works:**
 
 1. User calls `/auth/logout` with valid token
-2. Token's `jti` claim is recorded in `token-blacklist.csv`
+2. A SHA-256 hash of the token is recorded in `token-blacklist.csv`
 3. On subsequent requests, requireAuth verifies token is not blacklisted
 4. Blacklist entries can be pruned after token expiration (future optimization)
 

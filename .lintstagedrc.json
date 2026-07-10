@@ -1,5 +1,5 @@
 {
-	"Web/server/src/**/*.js": ["prettier --write", "npm --prefix Web/server run lint:fix --"],
+	"Web/server/src/**/*.js": ["npm --prefix Web/server run lint:fix --"],
 	"*.js": ["prettier --write"],
 	"*.json": ["prettier --write"],
 	"*.html": ["prettier --write"],
