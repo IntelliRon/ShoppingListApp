@@ -127,7 +127,7 @@ async function createList(userId, listName) {
 
 		return newList;
 	} catch (error) {
-		throw new Error(`Failed to create list: ${error.message}`);
+		throw error;
 	}
 }
 
@@ -176,7 +176,7 @@ async function updateList(userId, listId, listName) {
 		// Return updated record
 		return updated.find((r) => r.list_id === listId) || null;
 	} catch (error) {
-		throw new Error(`Failed to update list: ${error.message}`);
+		throw error;
 	}
 }
 
@@ -265,7 +265,7 @@ async function createSection(userId, listId, sectionName) {
 
 		return newSection;
 	} catch (error) {
-		throw new Error(`Failed to create section: ${error.message}`);
+		throw error;
 	}
 }
 
@@ -319,7 +319,7 @@ async function updateSection(userId, listId, sectionId, sectionName) {
 		// Return updated record
 		return updated.find((r) => r.section_id === sectionId) || null;
 	} catch (error) {
-		throw new Error(`Failed to update section: ${error.message}`);
+		throw error;
 	}
 }
 

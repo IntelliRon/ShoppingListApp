@@ -76,7 +76,7 @@ async function createList(req, res) {
 				list_id: newList.list_id,
 				list_name: newList.list_name,
 				created_at: newList.created_at,
-				updated_at: newList.last_modified,
+				last_modified: newList.last_modified,
 			},
 			timestamp: new Date().toISOString(),
 		});
@@ -150,6 +150,17 @@ async function updateList(req, res) {
 		}
 
 		const updated = await listService.updateList(userId, list_id, list_name);
+		if (!updated) {
+			return res.status(404).json({
+				success: false,
+				data: null,
+				error: {
+					code: "NOT_FOUND",
+					message: "List not found",
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
 
 		res.status(200).json({
 			success: true,
@@ -439,11 +450,23 @@ async function updateSection(req, res) {
 		}
 
 		const updated = await listService.updateSection(userId, list_id, section_id, section_name);
+		if (!updated) {
+			return res.status(404).json({
+				success: false,
+				data: null,
+				error: {
+					code: "NOT_FOUND",
+					message: "Section not found",
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
 
 		res.status(200).json({
 			success: true,
 			data: {
 				section_id: updated.section_id,
+				list_id: updated.list_id,
 				section_name: updated.section_name,
 				last_modified: updated.last_modified,
 			},

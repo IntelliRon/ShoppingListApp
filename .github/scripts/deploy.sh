@@ -29,8 +29,11 @@ pm2 stop "$API_NAME" 2>/dev/null || true
 
 # Start/restart PM2 process
 echo "[$(date)] Starting PM2 process..."
-NODE_ENV=production pm2 start Web/server/src/index.js --name "$API_NAME" 2>/dev/null || pm2 restart "$API_NAME"
-
+if pm2 describe "$API_NAME" >/dev/null 2>&1; then
+	NODE_ENV=production pm2 restart "$API_NAME"
+else
+	NODE_ENV=production pm2 start Web/server/src/index.js --name "$API_NAME"
+fi
 # Save PM2 state for auto-restart on server reboot
 pm2 save
 

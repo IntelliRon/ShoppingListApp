@@ -2,7 +2,7 @@
 
 **Base URL:** `http://localhost:3000/api/v1`
 
-All responses follow a standard format with `success`, `data`, `error`, and `timestamp` fields.
+All responses follow a standard format with `success`, `data`, and `timestamp` fields. Failed responses also include an `error` object.
 
 ---
 
@@ -375,7 +375,7 @@ Create a new shopping list.
 		"list_id": "l002",
 		"list_name": "Hardware Store",
 		"created_at": "2026-07-10T15:30:00Z",
-		"updated_at": "2026-07-10T15:30:00Z"
+		"last_modified": "2026-07-10T15:30:00Z"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
 }
@@ -454,7 +454,7 @@ Rename an existing shopping list.
 
 ### DELETE /lists/{list_id}
 
-Delete a shopping list and all its sections and items.
+Delete a shopping list and all its sections. (Item cleanup will be added when items are implemented in Phase 3.)
 
 **Request:**
 
@@ -703,7 +703,7 @@ Where `{token}` is the JWT token received from `/auth/login`.
 Global rate limiting is enabled:
 
 - **Window:** 60 seconds
-- **Max Requests:** 100 per window per user
+- **Max Requests:** 100 per window per IP
 - **Login Endpoint:** Additional protection against brute force attacks
 
 ---
