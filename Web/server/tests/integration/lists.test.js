@@ -394,4 +394,111 @@ describe("Lists and Sections API", () => {
 		expect(response.body.success).toBe(false);
 		expect(response.body.error.message).toMatch(/Either section_name or sort_order/i);
 	});
+
+	it("should shift other sections when reordering (moving to lower position)", async () => {
+		// Create list with 5 sections
+		const createListResponse = await request(app)
+			.post("/api/v1/lists")
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "Shift Test List" });
+
+		const testListId = createListResponse.body.data.list_id;
+
+		// Create 5 sections: should get sort_order 1, 2, 3, 4, 5
+		const sections = [];
+		for (let i = 1; i <= 5; i++) {
+			const response = await request(app)
+				.post(`/api/v1/lists/${testListId}/sections`)
+				.set("Authorization", `Bearer ${authToken}`)
+				.send({ section_name: `Section ${i}` });
+			sections.push(response.body.data);
+		}
+
+		// sections[4] should have sort_order 5
+		expect(sections[4].sort_order).toBe(5);
+
+		// Move section with sort_order 5 to sort_order 3
+		// Should shift: 3->4, 4->5, 5->3
+		const moveResponse = await request(app)
+			.put(`/api/v1/lists/${testListId}/sections/${sections[4].section_id}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ sort_order: 3 });
+
+		expect(moveResponse.status).toBe(200);
+		expect(moveResponse.body.data.sort_order).toBe(3);
+
+		// Verify other sections shifted
+		const getSectionsResponse = await request(app)
+			.get(`/api/v1/lists/${testListId}/sections`)
+			.set("Authorization", `Bearer ${authToken}`);
+
+		const updatedSections = getSectionsResponse.body.data;
+		expect(updatedSections).toHaveLength(5);
+
+		// sections[2] (Section 3) should now have sort_order 4
+		const section3 = updatedSections.find((s) => s.section_name === "Section 3");
+		expect(section3.sort_order).toBe(4);
+
+		// sections[3] (Section 4) should now have sort_order 5
+		const section4 = updatedSections.find((s) => s.section_name === "Section 4");
+		expect(section4.sort_order).toBe(5);
+
+		// sections[4] (Section 5) should now have sort_order 3
+		const section5 = updatedSections.find((s) => s.section_name === "Section 5");
+		expect(section5.sort_order).toBe(3);
+	});
+
+	it("should shift other sections when reordering (moving to higher position)", async () => {
+		// Create list with 5 sections
+		const createListResponse = await request(app)
+			.post("/api/v1/lists")
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "Shift Test List 2" });
+
+		const testListId = createListResponse.body.data.list_id;
+
+		// Create 5 sections
+		const sections = [];
+		for (let i = 1; i <= 5; i++) {
+			const response = await request(app)
+				.post(`/api/v1/lists/${testListId}/sections`)
+				.set("Authorization", `Bearer ${authToken}`)
+				.send({ section_name: `Item ${i}` });
+			sections.push(response.body.data);
+		}
+
+		// Move section with sort_order 1 to sort_order 4
+		// Should shift: 2->1, 3->2, 4->3, 1->4
+		const moveResponse = await request(app)
+			.put(`/api/v1/lists/${testListId}/sections/${sections[0].section_id}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ sort_order: 4 });
+
+		expect(moveResponse.status).toBe(200);
+		expect(moveResponse.body.data.sort_order).toBe(4);
+
+		// Verify other sections shifted
+		const getSectionsResponse = await request(app)
+			.get(`/api/v1/lists/${testListId}/sections`)
+			.set("Authorization", `Bearer ${authToken}`);
+
+		const updatedSections = getSectionsResponse.body.data;
+		expect(updatedSections).toHaveLength(5);
+
+		// Item 2 should now have sort_order 1
+		const item2 = updatedSections.find((s) => s.section_name === "Item 2");
+		expect(item2.sort_order).toBe(1);
+
+		// Item 3 should now have sort_order 2
+		const item3 = updatedSections.find((s) => s.section_name === "Item 3");
+		expect(item3.sort_order).toBe(2);
+
+		// Item 4 should now have sort_order 3
+		const item4 = updatedSections.find((s) => s.section_name === "Item 4");
+		expect(item4.sort_order).toBe(3);
+
+		// Item 1 should now have sort_order 4
+		const item1 = updatedSections.find((s) => s.section_name === "Item 1");
+		expect(item1.sort_order).toBe(4);
+	});
 });

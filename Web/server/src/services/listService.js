@@ -269,6 +269,71 @@ async function getSection(userId, listId, sectionId) {
 }
 
 /**
+ * Reorder sections when a section's sort_order changes
+ * Shifts adjacent sections to maintain sequential ordering
+ * @param {array} sections - All sections for the list
+ * @param {string} sectionId - Section being moved
+ * @param {number} newSortOrder - New sort order for the section
+ * @returns {array} Updated sections with adjusted sort_order values
+ */
+function reorderSections(sections, sectionId, newSortOrder) {
+	const section = sections.find((s) => s.section_id === sectionId);
+	if (!section) {
+		return sections;
+	}
+
+	const oldSortOrder = parseInt(section.sort_order);
+	if (oldSortOrder === newSortOrder) {
+		return sections;
+	}
+
+	const updated = [...sections];
+
+	if (newSortOrder < oldSortOrder) {
+		// Moving up: sections between newSortOrder and oldSortOrder shift down
+		for (let i = 0; i < updated.length; i++) {
+			const currentOrder = parseInt(updated[i].sort_order);
+			if (
+				updated[i].section_id !== sectionId &&
+				currentOrder >= newSortOrder &&
+				currentOrder < oldSortOrder
+			) {
+				updated[i] = {
+					...updated[i],
+					sort_order: String(currentOrder + 1),
+				};
+			}
+		}
+	} else {
+		// Moving down: sections between oldSortOrder and newSortOrder shift up
+		for (let i = 0; i < updated.length; i++) {
+			const currentOrder = parseInt(updated[i].sort_order);
+			if (
+				updated[i].section_id !== sectionId &&
+				currentOrder > oldSortOrder &&
+				currentOrder <= newSortOrder
+			) {
+				updated[i] = {
+					...updated[i],
+					sort_order: String(currentOrder - 1),
+				};
+			}
+		}
+	}
+
+	// Update the moved section
+	const sectionIndex = updated.findIndex((s) => s.section_id === sectionId);
+	if (sectionIndex !== -1) {
+		updated[sectionIndex] = {
+			...updated[sectionIndex],
+			sort_order: String(newSortOrder),
+		};
+	}
+
+	return updated;
+}
+
+/**
  * Update section (rename and/or reorder)
  * @param {string} userId - User ID
  * @param {string} listId - List ID
@@ -311,25 +376,53 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder) 
 	const sectionsPath = getSectionsFilePath(userId);
 	const now = new Date().toISOString();
 
+	// If reordering, we need to update affected sections
+	if (hasSortOrder) {
+		// Get all sections for the list to reorder them
+		const allSections = await getAllSections(userId);
+		const listSections = allSections.filter((s) => s.list_id === listId);
+
+		// Calculate the reordered sections
+		const reorderedSections = reorderSections(listSections, sectionId, sortOrder);
+
+		// Update all affected sections in one operation
+		const updated = await csvService.updateRecords(
+			sectionsPath,
+			(record) => record.list_id === listId,
+			(record) => {
+				// Find the reordered version of this record
+				const reordered = reorderedSections.find((s) => s.section_id === record.section_id);
+				if (!reordered) {
+					return record;
+				}
+
+				const updateData = {
+					...record,
+					sort_order: reordered.sort_order,
+					last_modified: now,
+				};
+
+				if (record.section_id === sectionId && hasSectionName) {
+					updateData.section_name = sectionName.trim();
+				}
+
+				return updateData;
+			}
+		);
+
+		// Return the updated section record
+		return updated.find((r) => r.section_id === sectionId) || null;
+	}
+
+	// Simple update: just rename (no reordering)
 	const updated = await csvService.updateRecords(
 		sectionsPath,
 		(record) => record.section_id === sectionId,
-		(record) => {
-			const updateData = {
-				...record,
-				last_modified: now,
-			};
-
-			if (hasSectionName) {
-				updateData.section_name = sectionName.trim();
-			}
-
-			if (hasSortOrder) {
-				updateData.sort_order = String(sortOrder);
-			}
-
-			return updateData;
-		}
+		(record) => ({
+			...record,
+			section_name: sectionName.trim(),
+			last_modified: now,
+		})
 	);
 
 	// Return updated record
