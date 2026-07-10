@@ -61,7 +61,6 @@ app.get("/api/v1/health", (req, res) => {
 			success: true,
 			data: {
 				status: "healthy",
-				timestamp: new Date().toISOString(),
 				uptime: Math.floor(process.uptime()),
 				environment: process.env.NODE_ENV || "development",
 				checks: {
@@ -69,6 +68,7 @@ app.get("/api/v1/health", (req, res) => {
 					csvAccess: "ok",
 				},
 			},
+			timestamp: new Date().toISOString(),
 		});
 	} catch (error) {
 		// eslint-disable-next-line no-console
