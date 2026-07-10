@@ -87,8 +87,8 @@ app.get("/api/v1/health", (req, res) => {
 
 // Routes
 app.use("/api/v1/auth", require("./routes/auth"));
-// TODO: Add remaining routes as implemented in Phase 2+
-// app.use('/api/v1/lists', require('./routes/lists'));
+app.use("/api/v1/lists", require("./routes/lists"));
+// TODO: Add remaining routes as implemented in Phase 3+
 // app.use('/api/v1/sync', require('./routes/sync'));
 
 // 404 Handler
