@@ -28,6 +28,16 @@ if (config.rateLimit.enabled) {
 	app.use("/api/", limiter);
 }
 
+// Brute-force protection for login endpoint
+// More restrictive: 5 requests per 15 minutes (per IP/user)
+const loginLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 5, // 5 attempts per window
+	skipSuccessfulRequests: true, // Only count failed requests
+	message: "Too many login attempts, please try again later.",
+});
+app.use("/api/v1/auth/login", loginLimiter);
+
 // Request logging middleware (development)
 if (process.env.NODE_ENV === "development") {
 	app.use((req, res, next) => {

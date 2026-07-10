@@ -32,7 +32,7 @@
 	},
 	"rateLimit": {
 		"enabled": true,
-		"windowMs": 900000,
+		"windowMs": 60000,
 		"max": 100,
 		"skipSuccessfulRequests": false
 	},
