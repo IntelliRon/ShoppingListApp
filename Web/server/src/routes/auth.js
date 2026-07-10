@@ -26,7 +26,7 @@ router.post("/register", async (req, res) => {
 				data: null,
 				error: {
 					code: "VALIDATION_ERROR",
-					message: "Username, password, and email are required",
+					message: "Invalid request data",
 				},
 				timestamp: new Date().toISOString(),
 			});
@@ -70,7 +70,7 @@ router.post("/register", async (req, res) => {
 				data: null,
 				error: {
 					code: "VALIDATION_ERROR",
-					message: error.message,
+					message: "Invalid or missing field values",
 				},
 				timestamp: new Date().toISOString(),
 			});
@@ -145,16 +145,35 @@ router.post("/login", async (req, res) => {
 
 /**
  * POST /auth/logout
- * Logout user (token invalidation on client side)
+ * Logout user - invalidates the provided token by adding it to blacklist
  */
-router.post("/logout", requireAuth, (req, res) => {
-	// Token invalidation is typically handled on the client side by discarding the token
-	// Server doesn't maintain a token blacklist in MVP
-	res.status(200).json({
-		success: true,
-		data: null,
-		timestamp: new Date().toISOString(),
-	});
+router.post("/logout", requireAuth, async (req, res) => {
+	try {
+		const token = req.token;
+		if (token) {
+			// Add token to blacklist to prevent reuse
+			await authService.blacklistToken(token);
+		}
+
+		res.status(200).json({
+			success: true,
+			data: null,
+			timestamp: new Date().toISOString(),
+		});
+	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error("[Auth Error]", error.message);
+
+		res.status(500).json({
+			success: false,
+			data: null,
+			error: {
+				code: "INTERNAL_ERROR",
+				message: "Failed to logout",
+			},
+			timestamp: new Date().toISOString(),
+		});
+	}
 });
 
 /**
@@ -201,7 +220,20 @@ router.post("/change-password", requireAuth, async (req, res) => {
 			});
 		}
 
-		if (error.message.includes("Password") || error.message.includes("User not found")) {
+		// "User not found" means authenticated user no longer exists = auth failure, not validation
+		if (error.message.includes("User not found")) {
+			return res.status(401).json({
+				success: false,
+				data: null,
+				error: {
+					code: "UNAUTHORIZED",
+					message: "User account not found",
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
+
+		if (error.message.includes("Password")) {
 			return res.status(400).json({
 				success: false,
 				data: null,

@@ -20,55 +20,78 @@ describe("Auth Middleware", () => {
 		};
 		next = jest.fn();
 		jest.clearAllMocks();
+		// Mock isTokenBlacklisted to return false by default
+		authService.isTokenBlacklisted.mockResolvedValue(false);
 	});
 
 	describe("requireAuth", () => {
-		it("should call next() if token is valid", () => {
+		it("should call next() if token is valid", async () => {
 			req.headers.authorization = "Bearer valid.token.here";
 			authService.verifyToken.mockReturnValue({
 				userId: "u_123",
 			});
 
-			authMiddleware.requireAuth(req, res, next);
+			await authMiddleware.requireAuth(req, res, next);
 
 			expect(next).toHaveBeenCalled();
 			expect(req.userId).toBe("u_123");
 		});
 
-		it("should return 401 if no authorization header", () => {
+		it("should return 401 if no authorization header", async () => {
 			req.headers.authorization = undefined;
 
-			authMiddleware.requireAuth(req, res, next);
+			await authMiddleware.requireAuth(req, res, next);
 
 			expect(res.status).toHaveBeenCalledWith(401);
 			expect(next).not.toHaveBeenCalled();
 		});
 
-		it("should return 401 if authorization format is invalid", () => {
+		it("should return 401 if authorization format is invalid", async () => {
 			req.headers.authorization = "InvalidFormat";
 
-			authMiddleware.requireAuth(req, res, next);
+			await authMiddleware.requireAuth(req, res, next);
 
 			expect(res.status).toHaveBeenCalledWith(401);
 			expect(next).not.toHaveBeenCalled();
 		});
 
-		it("should return 401 if token is invalid", () => {
+		it("should return 401 if token is invalid", async () => {
 			req.headers.authorization = "Bearer invalid.token";
 			authService.verifyToken.mockReturnValue(null);
 
-			authMiddleware.requireAuth(req, res, next);
+			await authMiddleware.requireAuth(req, res, next);
 
 			expect(res.status).toHaveBeenCalledWith(401);
 			expect(next).not.toHaveBeenCalled();
 		});
 
-		it("should handle missing Bearer keyword", () => {
+		it("should handle missing Bearer keyword", async () => {
 			req.headers.authorization = "NoBearer token";
 
-			authMiddleware.requireAuth(req, res, next);
+			await authMiddleware.requireAuth(req, res, next);
 
 			expect(res.status).toHaveBeenCalledWith(401);
+			expect(next).not.toHaveBeenCalled();
+		});
+
+		it("should return 401 if token is blacklisted", async () => {
+			req.headers.authorization = "Bearer valid.token.here";
+			authService.verifyToken.mockReturnValue({
+				userId: "u_123",
+			});
+			authService.isTokenBlacklisted.mockResolvedValue(true);
+
+			await authMiddleware.requireAuth(req, res, next);
+
+			expect(res.status).toHaveBeenCalledWith(401);
+			expect(res.json).toHaveBeenCalledWith(
+				expect.objectContaining({
+					error: expect.objectContaining({
+						code: "UNAUTHORIZED",
+						message: "Token has been revoked",
+					}),
+				})
+			);
 			expect(next).not.toHaveBeenCalled();
 		});
 	});

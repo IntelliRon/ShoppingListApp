@@ -23,6 +23,10 @@ try {
 const USERS_FILE =
 	process.env.TEST_USERS_FILE || path.join(__dirname, "..", "..", config.database.users_file);
 
+const BLACKLIST_FILE =
+	process.env.TEST_BLACKLIST_FILE ||
+	path.join(__dirname, "..", "..", config.database.blacklist_file);
+
 /**
  * Validate username format
  */
@@ -111,16 +115,16 @@ async function comparePassword(password, hash) {
  * Generate JWT token with fixed expiry
  * Note: Token rotation is deferred to MVP-2
  * Tokens are issued once and expire after config.auth.session_expiry_days (default 30 days)
+ * Requires JWT_SECRET env var in production
  */
 function generateToken(userId) {
 	const secret = process.env.JWT_SECRET || config.auth.jwt_secret;
 	const env = process.env.NODE_ENV || "development";
 
-	// Warn if using default placeholder secret outside development
-	if (env !== "development" && secret === config.auth.jwt_secret) {
-		// eslint-disable-next-line no-console
-		console.error(
-			"⚠️  WARNING: Using default JWT secret in production! Set JWT_SECRET environment variable."
+	// In production (not test or dev), JWT_SECRET MUST be explicitly set (not default)
+	if (env === "production" && secret === config.auth.jwt_secret) {
+		throw new Error(
+			"FATAL: JWT_SECRET environment variable must be set in production. Using default secret is a critical security risk."
 		);
 	}
 
@@ -129,6 +133,7 @@ function generateToken(userId) {
 	return jwt.sign(
 		{
 			userId,
+			jti: crypto.randomUUID(), // Unique token ID to prevent collision when logins happen in same second
 			iat: Math.floor(Date.now() / 1000),
 		},
 		secret,
@@ -280,15 +285,51 @@ async function changePassword(userId, oldPassword, newPassword) {
 		const updated = records.map((u) =>
 			u.user_id === userId
 				? {
-					...u,
-					password_hash: newPasswordHash,
-					updated_at: new Date().toISOString(),
-				}
+						...u,
+						password_hash: newPasswordHash,
+						updated_at: new Date().toISOString(),
+					}
 				: u
 		);
 
 		return { verified: true, updated };
 	});
+}
+
+/**
+ * Add token to blacklist to prevent reuse after logout
+ */
+async function blacklistToken(token) {
+	// Decode token to get expiry time
+	const decoded = jwt.decode(token);
+	if (!decoded || !decoded.exp) {
+		throw new Error("Invalid token format");
+	}
+
+	// Create blacklist record with token hash (don't store the actual token for security)
+	const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+	const record = {
+		token_hash: tokenHash,
+		blacklisted_at: new Date().toISOString(),
+		expires_at: new Date(decoded.exp * 1000).toISOString(), // JWT exp is in seconds
+	};
+
+	// Add to blacklist CSV
+	await csvService.appendCSV(BLACKLIST_FILE, [record]);
+}
+
+/**
+ * Check if token is in blacklist
+ */
+async function isTokenBlacklisted(token) {
+	const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
+	const blacklistedRecord = await csvService.findRecord(
+		BLACKLIST_FILE,
+		(record) => record.token_hash === tokenHash
+	);
+
+	return !!blacklistedRecord;
 }
 
 module.exports = {
@@ -303,4 +344,6 @@ module.exports = {
 	loginUser,
 	getUserById,
 	changePassword,
+	blacklistToken,
+	isTokenBlacklisted,
 };

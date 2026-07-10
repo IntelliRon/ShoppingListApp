@@ -11,15 +11,17 @@ let TEST_USERS_FILE;
 
 describe("API Error Handling", () => {
 	beforeAll(() => {
-		// Create temp directory and set env var BEFORE requiring app
+		// Create temp directory and set env vars BEFORE requiring app
 		// (so authService initializes with correct TEST_USERS_FILE path)
 		TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "api-error-test-"));
 		TEST_USERS_FILE = path.join(TEST_DIR, "users.csv");
 		process.env.TEST_USERS_FILE = TEST_USERS_FILE;
+		process.env.TEST_BLACKLIST_FILE = path.join(TEST_DIR, "token-blacklist.csv");
 
-		// Clear the require cache and require app AFTER env var is set
+		// Clear the require cache and require app AFTER env vars are set
 		delete require.cache[require.resolve("../../src/app")];
 		delete require.cache[require.resolve("../../src/services/authService")];
+		delete require.cache[require.resolve("../../src/middleware/authMiddleware")];
 	});
 
 	const request = require("supertest");
@@ -27,6 +29,7 @@ describe("API Error Handling", () => {
 
 	afterAll(() => {
 		delete process.env.TEST_USERS_FILE;
+		delete process.env.TEST_BLACKLIST_FILE;
 		if (fs.existsSync(TEST_DIR)) {
 			fs.rmSync(TEST_DIR, { recursive: true, force: true });
 		}

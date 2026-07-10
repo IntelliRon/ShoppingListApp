@@ -7,9 +7,9 @@ const authService = require("../services/authService");
 
 /**
  * Require authentication middleware
- * Verifies JWT token and adds userId to request
+ * Verifies JWT token, checks blacklist, and adds userId to request
  */
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
 	const authHeader = req.headers.authorization;
 
 	if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -39,9 +39,30 @@ function requireAuth(req, res, next) {
 		});
 	}
 
+	// Check if token has been blacklisted (logged out)
+	try {
+		const isBlacklisted = await authService.isTokenBlacklisted(token);
+		if (isBlacklisted) {
+			return res.status(401).json({
+				success: false,
+				data: null,
+				error: {
+					code: "UNAUTHORIZED",
+					message: "Token has been revoked",
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
+	} catch (error) {
+		// If blacklist check fails, log error but allow request to proceed
+		// (blacklist file might not exist yet)
+		// eslint-disable-next-line no-console
+		console.error("[Blacklist Check Error]", error.message);
+	}
+
 	req.userId = decoded.userId;
 	req.token = token;
-	next();
+	return next();
 }
 
 /**

@@ -10,14 +10,17 @@ const os = require("os");
 // Create a unique temp directory for this test run to avoid flakiness with parallel tests
 const TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "shopping-list-api-test-"));
 
-// Set environment variable to use temp directory for tests
+// Set environment variables to use temp directory for tests
 const TEST_USERS_FILE = path.join(TEST_DIR, "users.csv");
+const TEST_BLACKLIST_FILE = path.join(TEST_DIR, "token-blacklist.csv");
 process.env.TEST_USERS_FILE = TEST_USERS_FILE;
+process.env.TEST_BLACKLIST_FILE = TEST_BLACKLIST_FILE;
 
-// Clear require cache to ensure app/authService read the env var
+// Clear require cache to ensure app/authService read the env vars
 delete require.cache[require.resolve("../../src/app")];
 delete require.cache[require.resolve("../../src/services/authService")];
 delete require.cache[require.resolve("../../src/services/csvService")];
+delete require.cache[require.resolve("../../src/middleware/authMiddleware")];
 
 const request = require("supertest");
 const app = require("../../src/app");
@@ -48,8 +51,9 @@ describe("Authentication API", () => {
 			console.log("Cleanup note:", error.message);
 		}
 
-		// Clear the environment variable to prevent leaking to other test files
+		// Clear the environment variables to prevent leaking to other test files
 		delete process.env.TEST_USERS_FILE;
+		delete process.env.TEST_BLACKLIST_FILE;
 	});
 
 	describe("POST /api/v1/auth/register", () => {

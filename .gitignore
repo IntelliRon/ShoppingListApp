@@ -38,6 +38,7 @@ App/.gradle/
 # Database
 Web/server/db/users.csv
 Web/server/db/sessions.csv
+Web/server/db/token-blacklist.csv
 Web/server/db/shopping-lists/
 !Web/server/db/.gitkeep
 
