@@ -96,15 +96,22 @@ async function createList(userId, listName) {
 		if (!listName || listName.trim().length === 0) {
 			throw new Error("List name is required");
 		}
-		if (listName.length > 100) {
-			throw new Error("List name must be 100 characters or less");
+		if (listName.length > config.limits.max_list_name_length) {
+			throw new Error(
+				`List name must be ${config.limits.max_list_name_length} characters or less`
+			);
+		}
+
+		// Check max lists per user
+		const lists = await getAllLists(userId);
+		if (lists.length >= config.limits.max_lists_per_user) {
+			throw new Error(`Maximum ${config.limits.max_lists_per_user} lists per user reached`);
 		}
 
 		const listPath = getListsFilePath(userId);
 		const now = new Date().toISOString();
 
-		// Get all lists to generate next ID
-		const lists = await getAllLists(userId);
+		// Generate next ID
 		const listId = generateListId(lists);
 
 		const newList = {
@@ -146,8 +153,10 @@ async function updateList(userId, listId, listName) {
 		if (!listName || listName.trim().length === 0) {
 			throw new Error("List name is required");
 		}
-		if (listName.length > 100) {
-			throw new Error("List name must be 100 characters or less");
+		if (listName.length > config.limits.max_list_name_length) {
+			throw new Error(
+				`List name must be ${config.limits.max_list_name_length} characters or less`
+			);
 		}
 
 		const listPath = getListsFilePath(userId);
@@ -216,8 +225,10 @@ async function createSection(userId, listId, sectionName) {
 		if (!sectionName || sectionName.trim().length === 0) {
 			throw new Error("Section name is required");
 		}
-		if (sectionName.length > 50) {
-			throw new Error("Section name must be 50 characters or less");
+		if (sectionName.length > config.limits.max_section_name_length) {
+			throw new Error(
+				`Section name must be ${config.limits.max_section_name_length} characters or less`
+			);
 		}
 
 		// Verify list exists
@@ -229,8 +240,14 @@ async function createSection(userId, listId, sectionName) {
 		const sectionsPath = getSectionsFilePath(userId);
 		const now = new Date().toISOString();
 
-		// Get all sections to generate next ID and sort order
+		// Get all sections to check max sections per list
 		const sections = await getAllSections(userId);
+		const listSections = sections.filter((s) => s.list_id === listId);
+		if (listSections.length >= config.limits.max_sections_per_list) {
+			throw new Error(
+				`Maximum ${config.limits.max_sections_per_list} sections per list reached`
+			);
+		}
 		const sectionId = generateSectionId(sections);
 		const sortOrder = getNextSortOrder(sections, listId);
 
@@ -274,8 +291,10 @@ async function updateSection(userId, listId, sectionId, sectionName) {
 		if (!sectionName || sectionName.trim().length === 0) {
 			throw new Error("Section name is required");
 		}
-		if (sectionName.length > 50) {
-			throw new Error("Section name must be 50 characters or less");
+		if (sectionName.length > config.limits.max_section_name_length) {
+			throw new Error(
+				`Section name must be ${config.limits.max_section_name_length} characters or less`
+			);
 		}
 
 		// Verify section exists and belongs to this list
