@@ -173,6 +173,9 @@ async function registerUser(username, password, email) {
 		throw new Error(emailValidation.error);
 	}
 
+	// Normalize email to lowercase for case-insensitive uniqueness
+	const normalizedEmail = email.toLowerCase();
+
 	// Hash password first (before any async file operations)
 	const passwordHash = await hashPassword(password);
 
@@ -181,7 +184,7 @@ async function registerUser(username, password, email) {
 	const user = {
 		user_id: userId,
 		username,
-		email,
+		email: normalizedEmail,
 		password_hash: passwordHash,
 		is_developer: "false",
 		created_at: new Date().toISOString(),
@@ -192,7 +195,7 @@ async function registerUser(username, password, email) {
 	// The entire read+check+write happens atomically in one enqueued operation
 	await csvService.appendWithDuplicateCheck(USERS_FILE, [user], {
 		usernameFn: (u) => u.username === username,
-		emailFn: (u) => u.email === email,
+		emailFn: (u) => u.email === normalizedEmail,
 	});
 
 	// Generate token
@@ -201,7 +204,7 @@ async function registerUser(username, password, email) {
 	return {
 		user_id: userId,
 		username,
-		email,
+		email: normalizedEmail,
 		token,
 		created_at: user.created_at,
 	};

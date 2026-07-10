@@ -47,7 +47,15 @@ function enqueueFileOperation(filePath, operation) {
 
 	// Create non-poisoning tail: always resolves to prevent blocking subsequent operations
 	// This is what gets stored in the map, ensuring the queue never becomes rejected
-	const newTail = operationChain.catch(() => undefined);
+	const newTail = operationChain
+		.catch(() => undefined)
+		.then(() => {
+			// After the tail resolves (no pending operations), clean up the map entry
+			// to prevent unbounded Map growth in long-running processes with many files
+			if (writeQueues.get(filePath) === newTail) {
+				writeQueues.delete(filePath);
+			}
+		});
 
 	writeQueues.set(filePath, newTail);
 
@@ -437,7 +445,8 @@ function updateRecordsWithVerify(filePath, operation) {
  */
 function initializeDatabase() {
 	const dbPath = path.join(__dirname, "..", "..", config.database.path);
-	const shoppingListsDir = path.join(dbPath, "shopping-lists");
+	// Use the configured shopping lists directory from config, resolving relative to db path
+	const shoppingListsDir = path.join(__dirname, "..", "..", config.database.shopping_lists_dir);
 
 	ensureDir(dbPath);
 	ensureDir(shoppingListsDir);

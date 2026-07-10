@@ -362,7 +362,7 @@ u002,admin_user,admin@example.com,$2b$10$...,2026-01-10T08:00:00Z,2026-07-04T09:
 
 - `user_id` (string, unique): UUID or sequential ID
 - `username` (string, unique): Username for login
-- `email` (string, optional): Email address
+- `email` (string, required): Email address (validated, unique, lowercased)
 - `password_hash` (string): Bcrypt hashed password
 - `created_at` (ISO8601): Account creation timestamp
 - `last_login` (ISO8601): Last login timestamp
@@ -1708,25 +1708,31 @@ Closes #42
     - Audit logs
     - Performance analytics
 
-### Token Blacklist & Enhanced Logout (Future Consideration)
+### Token Blacklist & Logout (Phase 1 Implementation)
 
-**Current MVP Approach:**
+**Current Implementation:**
 
-- Logout invalidation handled on client side (token discarded)
-- No server-side token blacklist maintained
-- Simple and scalable for initial release
+- Server-side token blacklist using CSV persistence (`token-blacklist.csv`)
+- Logout invalidation by adding token jti claim to blacklist file
+- requireAuth middleware checks blacklist on every request
+- Simple and effective for initial release
+
+**How It Works:**
+
+1. User calls `/auth/logout` with valid token
+2. Token's `jti` claim is recorded in `token-blacklist.csv`
+3. On subsequent requests, requireAuth verifies token is not blacklisted
+4. Blacklist entries can be pruned after token expiration (future optimization)
 
 **Future Enhancement Options:**
 
 1. **Redis-based blacklist** - Fast in-memory token invalidation
     - Store revoked tokens with expiration matching JWT exp claim
-    - Check blacklist on protected endpoints
-    - Suitable for medium-scale deployments
+    - Suitable for high-traffic deployments
 
-2. **Database-backed blacklist** - Persistent token tracking
-    - Maintain `revoked_tokens.csv` or similar
-    - Trade-off: Simpler than Redis but slower checks
-    - Good for audit compliance requirements
+2. **Automatic cleanup** - Prune expired entries from CSV
+    - Remove entries older than token expiration period
+    - Reduce CSV file size over time
 
 3. **Short-lived refresh tokens** - Enhanced security pattern
     - Short access tokens (15 min) + long refresh tokens (30 days)

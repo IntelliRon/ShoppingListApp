@@ -40,6 +40,7 @@ async function requireAuth(req, res, next) {
 	}
 
 	// Check if token has been blacklisted (logged out)
+	// Fail closed: if blacklist check fails, return 500 rather than allowing unverified access
 	try {
 		const isBlacklisted = await authService.isTokenBlacklisted(token);
 		if (isBlacklisted) {
@@ -54,10 +55,19 @@ async function requireAuth(req, res, next) {
 			});
 		}
 	} catch (error) {
-		// If blacklist check fails, log error but allow request to proceed
-		// (blacklist file might not exist yet)
+		// If blacklist check fails, return 500 to fail closed
+		// (token revocation cannot be verified, so deny access)
 		// eslint-disable-next-line no-console
 		console.error("[Blacklist Check Error]", error.message);
+		return res.status(500).json({
+			success: false,
+			data: null,
+			error: {
+				code: "INTERNAL_ERROR",
+				message: "Token verification failed",
+			},
+			timestamp: new Date().toISOString(),
+		});
 	}
 
 	req.userId = decoded.userId;
@@ -111,17 +121,28 @@ async function requireDeveloper(req, res, next) {
 
 /**
  * Optional authentication middleware
- * Verifies JWT token if present, but doesn't require it
+ * Verifies JWT token if present AND checks blacklist, but doesn't require authentication
  */
-function optionalAuth(req, res, next) {
+async function optionalAuth(req, res, next) {
 	const authHeader = req.headers.authorization;
 
 	if (authHeader && authHeader.startsWith("Bearer ")) {
 		const token = authHeader.substring(7);
 		const decoded = authService.verifyToken(token);
 		if (decoded) {
-			req.userId = decoded.userId;
-			req.token = token;
+			// Check if token has been blacklisted (logged out)
+			try {
+				const isBlacklisted = await authService.isTokenBlacklisted(token);
+				if (!isBlacklisted) {
+					// Only set userId if token is not blacklisted
+					req.userId = decoded.userId;
+					req.token = token;
+				}
+			} catch (error) {
+				// If blacklist check fails, treat as unauthenticated (don't set userId)
+				// eslint-disable-next-line no-console
+				console.error("[Blacklist Check Error]", error.message);
+			}
 		}
 	}
 

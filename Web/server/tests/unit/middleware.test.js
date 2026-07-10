@@ -97,32 +97,33 @@ describe("Auth Middleware", () => {
 	});
 
 	describe("optionalAuth", () => {
-		it("should add userId if valid token provided", () => {
+		it("should add userId if valid token provided", async () => {
 			req.headers.authorization = "Bearer valid.token";
 			authService.verifyToken.mockReturnValue({
 				userId: "u_123",
 			});
+			authService.isTokenBlacklisted.mockResolvedValue(false);
 
-			authMiddleware.optionalAuth(req, res, next);
+			await authMiddleware.optionalAuth(req, res, next);
 
 			expect(req.userId).toBe("u_123");
 			expect(next).toHaveBeenCalled();
 		});
 
-		it("should call next without userId if no token", () => {
+		it("should call next without userId if no token", async () => {
 			req.headers.authorization = undefined;
 
-			authMiddleware.optionalAuth(req, res, next);
+			await authMiddleware.optionalAuth(req, res, next);
 
 			expect(req.userId).toBeUndefined();
 			expect(next).toHaveBeenCalled();
 		});
 
-		it("should call next without userId if token invalid", () => {
+		it("should call next without userId if token invalid", async () => {
 			req.headers.authorization = "Bearer invalid.token";
 			authService.verifyToken.mockReturnValue(null);
 
-			authMiddleware.optionalAuth(req, res, next);
+			await authMiddleware.optionalAuth(req, res, next);
 
 			expect(req.userId).toBeUndefined();
 			expect(next).toHaveBeenCalled();
