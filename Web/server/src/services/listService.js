@@ -93,10 +93,10 @@ async function getAllSections(userId) {
 async function createList(userId, listName) {
 	try {
 		// Validate input
-		if (!listName || listName.trim().length === 0) {
+		if (!listName || typeof listName !== "string" || listName.trim().length === 0) {
 			throw new Error("List name is required");
 		}
-		if (listName.length > config.limits.max_list_name_length) {
+		if (listName.trim().length > config.limits.max_list_name_length) {
 			throw new Error(
 				`List name must be ${config.limits.max_list_name_length} characters or less`
 			);
@@ -150,10 +150,10 @@ async function getList(userId, listId) {
 async function updateList(userId, listId, listName) {
 	try {
 		// Validate input
-		if (!listName || listName.trim().length === 0) {
+		if (!listName || typeof listName !== "string" || listName.trim().length === 0) {
 			throw new Error("List name is required");
 		}
-		if (listName.length > config.limits.max_list_name_length) {
+		if (listName.trim().length > config.limits.max_list_name_length) {
 			throw new Error(
 				`List name must be ${config.limits.max_list_name_length} characters or less`
 			);
@@ -222,10 +222,10 @@ async function getListSections(userId, listId) {
 async function createSection(userId, listId, sectionName) {
 	try {
 		// Validate input
-		if (!sectionName || sectionName.trim().length === 0) {
+		if (!sectionName || typeof sectionName !== "string" || sectionName.trim().length === 0) {
 			throw new Error("Section name is required");
 		}
-		if (sectionName.length > config.limits.max_section_name_length) {
+		if (sectionName.trim().length > config.limits.max_section_name_length) {
 			throw new Error(
 				`Section name must be ${config.limits.max_section_name_length} characters or less`
 			);
@@ -288,10 +288,10 @@ async function getSection(userId, listId, sectionId) {
 async function updateSection(userId, listId, sectionId, sectionName) {
 	try {
 		// Validate input
-		if (!sectionName || sectionName.trim().length === 0) {
+		if (!sectionName || typeof sectionName !== "string" || sectionName.trim().length === 0) {
 			throw new Error("Section name is required");
 		}
-		if (sectionName.length > config.limits.max_section_name_length) {
+		if (sectionName.trim().length > config.limits.max_section_name_length) {
 			throw new Error(
 				`Section name must be ${config.limits.max_section_name_length} characters or less`
 			);

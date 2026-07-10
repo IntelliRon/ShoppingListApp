@@ -16,9 +16,10 @@ git pull origin master
 
 # Install/update dependencies
 cd Web/server
-npm install --production
+npm ci
 npm run lint
 npm test
+npm prune --omit=dev
 
 # Navigate back to project root
 cd "$PROJECT_DIR"

@@ -268,8 +268,10 @@ async function getListSections(req, res) {
 			success: true,
 			data: sections.map((section) => ({
 				section_id: section.section_id,
+				list_id: section.list_id,
 				section_name: section.section_name,
-				sort_order: section.sort_order,
+				sort_order: parseInt(section.sort_order, 10),
+				created_at: section.created_at,
 				last_modified: section.last_modified,
 			})),
 			timestamp: new Date().toISOString(),
@@ -332,8 +334,10 @@ async function createSection(req, res) {
 			success: true,
 			data: {
 				section_id: newSection.section_id,
+				list_id: newSection.list_id,
 				section_name: newSection.section_name,
-				sort_order: newSection.sort_order,
+				sort_order: parseInt(newSection.sort_order, 10),
+				created_at: newSection.created_at,
 				last_modified: newSection.last_modified,
 			},
 			timestamp: new Date().toISOString(),
@@ -341,8 +345,6 @@ async function createSection(req, res) {
 	} catch (error) {
 		// eslint-disable-next-line no-console
 		console.error("[Lists Error]", error.message);
-		// eslint-disable-next-line no-console
-		console.error("[Lists Error Stack]", error.stack);
 
 		// Handle validation errors
 		if (
