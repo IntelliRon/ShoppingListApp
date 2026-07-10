@@ -91,9 +91,18 @@ App/
 
 API client configured in `data/api/RetrofitClient.kt`
 
-- Base URL: `https://api.shoppinglist.intelliron.xyz/api/v1`
-- Request interceptor for authentication
-- Error handling and retry logic
+**Base URL Configuration:**
+
+- **Development:** `http://192.168.1.x:3000/api/v1` (replace with your machine's IP)
+- **Production:** `https://api.shoppinglist.intelliron.xyz/api/v1`
+
+**API Documentation:** See [docs/API.md](../docs/API.md)
+
+**Features:**
+
+- Request interceptor for authentication (JWT bearer token)
+- Error handling and automatic retry logic
+- Timeout configuration for slow networks
 
 ### Local Storage
 

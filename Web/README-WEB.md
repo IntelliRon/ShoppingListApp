@@ -38,21 +38,22 @@ server/
 ### Development Workflow
 
 1. **Local Development**
-   - Run `npm run dev` for auto-reload with nodemon
-   - Tests run automatically on code changes
-   - Check logs for errors
+    - Run `npm run dev` for auto-reload with nodemon
+    - Tests run automatically on code changes
+    - Check logs for errors
 
 2. **Testing**
-   ```bash
-   npm test                       # Run all tests
-   npm run test:coverage         # Generate coverage
-   ```
+
+    ```bash
+    npm test                       # Run all tests
+    npm run test:coverage         # Generate coverage
+    ```
 
 3. **Linting**
-   ```bash
-   npm run lint                  # Check code
-   npm run lint:fix              # Auto-fix issues
-   ```
+    ```bash
+    npm run lint                  # Check code
+    npm run lint:fix              # Auto-fix issues
+    ```
 
 ### Environment Variables
 
@@ -65,9 +66,24 @@ See `.env.example` for all available options. Key variables:
 
 ### API Endpoints
 
-All 21 endpoints documented in main [PLAN.md](../PLAN.md#api-specification)
+All endpoints documented in [docs/API.md](../docs/API.md) with:
+
+- Request method and parameters
+- Input/output schemas
+- Response codes and examples
+- Authentication requirements
 
 **Health Check:** `GET /api/v1/health` (no auth required)
+
+**Phase 2 Endpoints (Implemented):**
+
+- Lists: GET, POST, PUT, DELETE
+- Sections: GET, POST, PUT, DELETE
+
+**Phase 3 Endpoints (In Development):**
+
+- Items: GET, POST, PUT, DELETE
+- Sync: POST (client-server reconciliation)
 
 ### Database
 
@@ -120,18 +136,21 @@ See [PLAN.md - CI/CD & GitHub Setup](../PLAN.md#cicd--github-setup) for deployme
 ## Troubleshooting
 
 **Port already in use:**
+
 ```bash
 # Change PORT in .env or use environment variable
 PORT=3001 npm run dev
 ```
 
 **Database files missing:**
+
 ```bash
 # Files are created automatically on first run
 # Ensure src/db/ directory exists and is writable
 ```
 
 **Tests failing:**
+
 ```bash
 # Clear Jest cache
 npx jest --clearCache
