@@ -122,7 +122,7 @@ async function updateList(req, res) {
 	try {
 		const userId = req.userId; // Set by requireAuth middleware
 		const { list_id } = req.params;
-		const { list_name } = req.body || {};
+		const { list_name, expected_version } = req.body || {};
 
 		if (!list_name) {
 			return res.status(400).json({
@@ -150,7 +150,7 @@ async function updateList(req, res) {
 			});
 		}
 
-		const updated = await listService.updateList(userId, list_id, list_name);
+		const updated = await listService.updateList(userId, list_id, list_name, expected_version);
 		if (!updated) {
 			return res.status(404).json({
 				success: false,
@@ -169,12 +169,26 @@ async function updateList(req, res) {
 				list_id: updated.list_id,
 				list_name: updated.list_name,
 				last_modified: updated.last_modified,
+				version: String(updated.version),
 			},
 			timestamp: new Date().toISOString(),
 		});
 	} catch (error) {
 		// eslint-disable-next-line no-console
 		console.error("[Lists Error]", error.message);
+
+		// Handle version conflict (optimistic locking)
+		if (error.code === "CONFLICT") {
+			return res.status(409).json({
+				success: false,
+				data: null,
+				error: {
+					code: "CONFLICT",
+					message: error.message,
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
 
 		// Handle validation errors
 		if (
@@ -408,7 +422,7 @@ async function updateSection(req, res) {
 	try {
 		const userId = req.userId; // Set by requireAuth middleware
 		const { list_id, section_id } = req.params;
-		const { section_name, sort_order } = req.body || {};
+		const { section_name, sort_order, expected_version } = req.body || {};
 
 		// Validate that at least one update parameter is provided
 		if (!section_name && sort_order === undefined) {
@@ -456,7 +470,8 @@ async function updateSection(req, res) {
 			list_id,
 			section_id,
 			section_name,
-			sort_order
+			sort_order,
+			expected_version
 		);
 		if (!updated) {
 			return res.status(404).json({
@@ -478,12 +493,26 @@ async function updateSection(req, res) {
 				section_name: updated.section_name,
 				sort_order: parseInt(updated.sort_order, 10),
 				last_modified: updated.last_modified,
+				version: String(updated.version),
 			},
 			timestamp: new Date().toISOString(),
 		});
 	} catch (error) {
 		// eslint-disable-next-line no-console
 		console.error("[Lists Error]", error.message);
+
+		// Handle version conflict (optimistic locking)
+		if (error.code === "CONFLICT") {
+			return res.status(409).json({
+				success: false,
+				data: null,
+				error: {
+					code: "CONFLICT",
+					message: error.message,
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
 
 		// Handle validation errors
 		if (

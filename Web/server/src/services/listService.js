@@ -142,8 +142,14 @@ async function getList(userId, listId) {
 
 /**
  * Update list (rename)
+ * @param {string} userId - User ID
+ * @param {string} listId - List ID to update
+ * @param {string} listName - New list name
+ * @param {string} [expectedVersion] - Expected version for optimistic locking (optional)
+ * @returns {object} Updated list record
+ * @throws {Error} If expectedVersion provided but doesn't match current version
  */
-async function updateList(userId, listId, listName) {
+async function updateList(userId, listId, listName, expectedVersion) {
 	// Validate input
 	if (!listName || typeof listName !== "string" || listName.trim().length === 0) {
 		throw new Error("List name is required");
@@ -152,6 +158,21 @@ async function updateList(userId, listId, listName) {
 		throw new Error(
 			`List name must be ${config.limits.max_list_name_length} characters or less`
 		);
+	}
+
+	// If expectedVersion is provided, validate it first (optimistic locking)
+	if (expectedVersion !== undefined && expectedVersion !== null) {
+		const currentList = await getList(userId, listId);
+		if (!currentList) {
+			throw new Error("List not found");
+		}
+		if (String(currentList.version) !== String(expectedVersion)) {
+			const error = new Error(
+				`Version conflict: expected ${expectedVersion}, but current version is ${currentList.version}`
+			);
+			error.code = "CONFLICT";
+			throw error;
+		}
 	}
 
 	const listPath = getListsFilePath(userId);
@@ -247,6 +268,7 @@ async function createSection(userId, listId, sectionName) {
 		sort_order: String(sortOrder),
 		created_at: now,
 		last_modified: now,
+		version: "1",
 	};
 
 	// Append new section
@@ -340,10 +362,11 @@ function reorderSections(sections, sectionId, newSortOrder) {
  * @param {string} sectionId - Section ID to update
  * @param {string} [sectionName] - New section name (optional)
  * @param {number} [sortOrder] - New sort order (optional)
+ * @param {string} [expectedVersion] - Expected version for optimistic locking (optional)
  * @returns {object} Updated section record
  * @throws {Error} If neither sectionName nor sortOrder provided, or if validation fails
  */
-async function updateSection(userId, listId, sectionId, sectionName, sortOrder) {
+async function updateSection(userId, listId, sectionId, sectionName, sortOrder, expectedVersion) {
 	// Validate that at least one update parameter is provided
 	const hasSectionName =
 		sectionName && typeof sectionName === "string" && sectionName.trim().length > 0;
@@ -371,6 +394,17 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder) 
 	const section = await getSection(userId, listId, sectionId);
 	if (!section) {
 		throw new Error("Section not found");
+	}
+
+	// If expectedVersion is provided, validate it first (optimistic locking)
+	if (expectedVersion !== undefined && expectedVersion !== null) {
+		if (String(section.version) !== String(expectedVersion)) {
+			const error = new Error(
+				`Version conflict: expected ${expectedVersion}, but current version is ${section.version}`
+			);
+			error.code = "CONFLICT";
+			throw error;
+		}
 	}
 
 	const sectionsPath = getSectionsFilePath(userId);
@@ -402,8 +436,12 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder) 
 					last_modified: now,
 				};
 
-				if (record.section_id === sectionId && hasSectionName) {
-					updateData.section_name = sectionName.trim();
+				// Only increment version for the target section being updated
+				if (record.section_id === sectionId) {
+					if (hasSectionName) {
+						updateData.section_name = sectionName.trim();
+					}
+					updateData.version = String(parseInt(record.version || 0) + 1);
 				}
 
 				return updateData;
@@ -422,6 +460,7 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder) 
 			...record,
 			section_name: sectionName.trim(),
 			last_modified: now,
+			version: String(parseInt(record.version || 0) + 1),
 		})
 	);
 

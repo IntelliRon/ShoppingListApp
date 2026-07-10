@@ -501,4 +501,115 @@ describe("Lists and Sections API", () => {
 		const item1 = updatedSections.find((s) => s.section_name === "Item 1");
 		expect(item1.sort_order).toBe(4);
 	});
+
+	// Optimistic locking tests (version-based conflict detection)
+	it("should support optimistic locking with expected_version on list updates", async () => {
+		// Create a list
+		const createResponse = await request(app)
+			.post("/api/v1/lists")
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "Version Test List" });
+
+		const testListId = createResponse.body.data.list_id;
+		const initialVersion = createResponse.body.data.version || "1";
+
+		// Update with correct version
+		const updateResponse = await request(app)
+			.put(`/api/v1/lists/${testListId}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "Updated Name", expected_version: initialVersion });
+
+		expect(updateResponse.status).toBe(200);
+		expect(updateResponse.body.data.list_name).toBe("Updated Name");
+		expect(updateResponse.body.data.version).toBe("2");
+	});
+
+	it("should reject list update with incorrect expected_version (409 CONFLICT)", async () => {
+		// Create a list
+		const createResponse = await request(app)
+			.post("/api/v1/lists")
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "Conflict Test List" });
+
+		const testListId = createResponse.body.data.list_id;
+
+		// Try to update with wrong expected version
+		const updateResponse = await request(app)
+			.put(`/api/v1/lists/${testListId}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "Updated", expected_version: "999" });
+
+		expect(updateResponse.status).toBe(409);
+		expect(updateResponse.body.success).toBe(false);
+		expect(updateResponse.body.error.code).toBe("CONFLICT");
+		expect(updateResponse.body.error.message).toMatch(/Version conflict/i);
+	});
+
+	it("should support optimistic locking with expected_version on section updates", async () => {
+		// Create a section
+		const createResponse = await request(app)
+			.post(`/api/v1/lists/${listId}/sections`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ section_name: "Version Test Section" });
+
+		const testSectionId = createResponse.body.data.section_id;
+		const initialVersion = createResponse.body.data.version || "1";
+
+		// Update with correct version
+		const updateResponse = await request(app)
+			.put(`/api/v1/lists/${listId}/sections/${testSectionId}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({
+				section_name: "Updated Section",
+				expected_version: initialVersion,
+			});
+
+		expect(updateResponse.status).toBe(200);
+		expect(updateResponse.body.data.section_name).toBe("Updated Section");
+		expect(updateResponse.body.data.version).toBe("2");
+	});
+
+	it("should reject section update with incorrect expected_version (409 CONFLICT)", async () => {
+		// Create a section
+		const createResponse = await request(app)
+			.post(`/api/v1/lists/${listId}/sections`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ section_name: "Conflict Test Section" });
+
+		const testSectionId = createResponse.body.data.section_id;
+
+		// Try to update with wrong expected version
+		const updateResponse = await request(app)
+			.put(`/api/v1/lists/${listId}/sections/${testSectionId}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({
+				section_name: "Updated",
+				expected_version: "999",
+			});
+
+		expect(updateResponse.status).toBe(409);
+		expect(updateResponse.body.success).toBe(false);
+		expect(updateResponse.body.error.code).toBe("CONFLICT");
+		expect(updateResponse.body.error.message).toMatch(/Version conflict/i);
+	});
+
+	it("should allow update without expected_version (version checking is optional)", async () => {
+		// Create a list
+		const createResponse = await request(app)
+			.post("/api/v1/lists")
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "Optional Version Test" });
+
+		const testListId = createResponse.body.data.list_id;
+
+		// Update without expected_version - should succeed
+		const updateResponse = await request(app)
+			.put(`/api/v1/lists/${testListId}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "Updated Without Version Check" });
+
+		expect(updateResponse.status).toBe(200);
+		expect(updateResponse.body.data.list_name).toBe("Updated Without Version Check");
+		expect(updateResponse.body.data.version).toBe("2");
+	});
 });
