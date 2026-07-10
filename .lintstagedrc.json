@@ -1,5 +1,5 @@
 {
-	"Web/server/src/**/*.js": ["npx eslint --fix", "prettier --write"],
+	"Web/server/src/**/*.js": ["prettier --write"],
 	"*.js": ["prettier --write"],
 	"*.json": ["prettier --write"],
 	"*.html": ["prettier --write"],
