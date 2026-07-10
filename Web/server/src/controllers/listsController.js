@@ -87,6 +87,7 @@ async function createList(req, res) {
 		// Handle validation errors
 		if (
 			error.message.includes("List name") ||
+			error.message.includes("Maximum") ||
 			error.message.includes("required") ||
 			error.message.includes("must be")
 		) {
@@ -357,9 +358,9 @@ async function createSection(req, res) {
 		// eslint-disable-next-line no-console
 		console.error("[Lists Error]", error.message);
 
-		// Handle validation errors
 		if (
 			error.message.includes("Section name") ||
+			error.message.includes("Maximum") ||
 			error.message.includes("required") ||
 			error.message.includes("must be")
 		) {
