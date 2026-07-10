@@ -28,9 +28,20 @@ if (config.rateLimit.enabled) {
 	app.use("/api/", limiter);
 }
 
+// Brute-force protection for login endpoint
+// More restrictive: 5 requests per 15 minutes (per IP/user)
+const loginLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	max: 5, // 5 attempts per window
+	skipSuccessfulRequests: true, // Only count failed requests
+	message: "Too many login attempts, please try again later.",
+});
+app.use("/api/v1/auth/login", loginLimiter);
+
 // Request logging middleware (development)
 if (process.env.NODE_ENV === "development") {
 	app.use((req, res, next) => {
+		// eslint-disable-next-line no-console
 		console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
 		next();
 	});
@@ -60,6 +71,7 @@ app.get("/api/v1/health", (req, res) => {
 			},
 		});
 	} catch (error) {
+		// eslint-disable-next-line no-console
 		console.error("[Health Check Error]", error.message);
 		res.status(503).json({
 			success: false,
@@ -74,8 +86,8 @@ app.get("/api/v1/health", (req, res) => {
 });
 
 // Routes
-// TODO: Add API routes as implemented in Phase 1+
-// app.use('/api/v1/auth', require('./routes/auth'));
+app.use("/api/v1/auth", require("./routes/auth"));
+// TODO: Add remaining routes as implemented in Phase 2+
 // app.use('/api/v1/lists', require('./routes/lists'));
 // app.use('/api/v1/sync', require('./routes/sync'));
 
@@ -93,7 +105,8 @@ app.use((req, res) => {
 });
 
 // Error Handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
+	// eslint-disable-next-line no-console
 	console.error("[Error]", err.message);
 
 	const statusCode = err.statusCode || 500;

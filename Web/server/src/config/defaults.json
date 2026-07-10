@@ -1,42 +1,43 @@
 {
-  "server": {
-    "port": 3000,
-    "env": "development",
-    "cors": {
-      "origin": ["http://localhost:8080", "http://localhost:3001"],
-      "credentials": true
-    }
-  },
-  "database": {
-    "path": "./db",
-    "users_file": "./db/users.csv",
-    "sessions_file": "./db/sessions.csv",
-    "shopping_lists_dir": "./db/shopping-lists"
-  },
-  "auth": {
-    "bcrypt_rounds": 10,
-    "password_min_length": 8,
-    "session_expiry_days": 30,
-    "session_rotation_days": 7,
-    "jwt_secret": "your-secret-key-change-in-production"
-  },
-  "limits": {
-    "max_items_per_list": 1000,
-    "max_sections_per_list": 50,
-    "max_lists_per_user": 100,
-    "max_username_length": 32,
-    "max_list_name_length": 100,
-    "max_item_name_length": 200,
-    "max_section_name_length": 50
-  },
-  "rateLimit": {
-    "enabled": true,
-    "windowMs": 900000,
-    "max": 100,
-    "skipSuccessfulRequests": false
-  },
-  "logging": {
-    "level": "info",
-    "format": "json"
-  }
+	"server": {
+		"port": 3000,
+		"env": "development",
+		"cors": {
+			"origin": ["http://localhost:8080", "http://localhost:3001"],
+			"credentials": true
+		}
+	},
+	"database": {
+		"path": "./db",
+		"users_file": "./db/users.csv",
+		"blacklist_file": "./db/token-blacklist.csv",
+		"sessions_file": "./db/sessions.csv",
+		"shopping_lists_dir": "./db/shopping-lists"
+	},
+	"auth": {
+		"bcrypt_rounds": 10,
+		"password_min_length": 8,
+		"session_expiry_days": 30,
+		"session_rotation_days": 7,
+		"jwt_secret": "your-secret-key-change-in-production"
+	},
+	"limits": {
+		"max_items_per_list": 1000,
+		"max_sections_per_list": 50,
+		"max_lists_per_user": 100,
+		"max_username_length": 32,
+		"max_list_name_length": 100,
+		"max_item_name_length": 200,
+		"max_section_name_length": 50
+	},
+	"rateLimit": {
+		"enabled": true,
+		"windowMs": 60000,
+		"max": 100,
+		"skipSuccessfulRequests": false
+	},
+	"logging": {
+		"level": "info",
+		"format": "json"
+	}
 }
