@@ -6,6 +6,35 @@ All responses follow a standard format with `success`, `data`, `error`, and `tim
 
 ---
 
+## Table of Contents
+
+- [Standard Response Format](#standard-response-format)
+- [Health Check](#health-check)
+- [Authentication Endpoints](#authentication-endpoints)
+    - [POST /auth/register](#post-authregister)
+    - [POST /auth/login](#post-authlogin)
+    - [POST /auth/logout](#post-authlogout)
+    - [POST /auth/change-password](#post-authchange-password)
+- [Shopping Lists Endpoints](#shopping-lists-endpoints)
+    - [GET /lists](#get-lists)
+    - [POST /lists](#post-lists)
+    - [PUT /lists/{list_id}](#put-listslist_id)
+    - [DELETE /lists/{list_id}](#delete-listslist_id)
+- [Sections Endpoints](#sections-endpoints)
+    - [GET /lists/{list_id}/sections](#get-listslist_idsections)
+    - [POST /lists/{list_id}/sections](#post-listslist_idsections)
+    - [PUT /lists/{list_id}/sections/{section_id}](#put-listslist_idsectionssection_id)
+    - [DELETE /lists/{list_id}/sections/{section_id}](#delete-listslist_idsectionssection_id)
+- [Items Endpoints (Phase 3)](#items-endpoints-phase-3)
+- [Sync Endpoints (Phase 3)](#sync-endpoints-phase-3)
+- [Error Codes](#error-codes)
+- [Authentication](#authentication)
+- [Rate Limiting](#rate-limiting)
+- [Timestamps](#timestamps)
+- [Data Constraints](#data-constraints)
+
+---
+
 ## Standard Response Format
 
 ### Success Response
