@@ -116,12 +116,14 @@ jobs:
         uses: android-actions/setup-android@v2
       
       - name: Decode keystore
-        if: secrets.KEYSTORE_BASE64 != ''
+        if: env.KEYSTORE_BASE64 != ''
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > App/release.keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       
       - name: Build signed APK
-        if: secrets.KEYSTORE_BASE64 != ''
+        if: env.KEYSTORE_BASE64 != ''
         working-directory: App
         run: |
           chmod +x ./gradlew
@@ -130,13 +132,17 @@ jobs:
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEYSTORE_ALIAS }} \
             -Pandroid.injected.signing.key.password=${{ secrets.KEYSTORE_ALIAS_PASSWORD }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       
       - name: Build unsigned APK (if no keystore)
-        if: secrets.KEYSTORE_BASE64 == ''
+        if: env.KEYSTORE_BASE64 == ''
         working-directory: App
         run: |
           chmod +x ./gradlew
           ./gradlew assembleRelease
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       
       - name: Determine APK filename
         id: apk

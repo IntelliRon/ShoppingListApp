@@ -15,16 +15,20 @@ cd "$PROJECT_DIR"
 git pull origin master
 
 # Install/update dependencies
-npm install --production --prefix Web/server
+cd Web/server
+npm install --production
+npm run lint
+npm test
 
-# Restart or start PM2 process
-if pm2 list | grep -q "$API_NAME"; then
-    echo "[$(date)] Restarting PM2 process..."
-    pm2 restart "$API_NAME"
-else
-    echo "[$(date)] Starting new PM2 process..."
-    pm2 start Web/server/src/index.js --name "$API_NAME" --env production
-fi
+# Navigate back to project root
+cd "$PROJECT_DIR"
+
+# Stop old PM2 process if running
+pm2 stop "$API_NAME" 2>/dev/null || true
+
+# Start/restart PM2 process
+echo "[$(date)] Starting PM2 process..."
+NODE_ENV=production pm2 start Web/server/src/index.js --name "$API_NAME" 2>/dev/null || pm2 restart "$API_NAME"
 
 # Save PM2 state for auto-restart on server reboot
 pm2 save
@@ -32,8 +36,8 @@ pm2 save
 # Give app a moment to start
 sleep 3
 
-# Health check
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://api.shoppinglist.intelliron.xyz/api/v1/health || echo "000")
+# Health check (localhost since we're on the server)
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/health || echo "000")
 
 if [ "$RESPONSE" == "200" ]; then
     echo "[$(date)] ✓ Deployment successful! API is responding."
