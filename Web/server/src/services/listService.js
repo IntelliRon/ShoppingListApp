@@ -270,16 +270,36 @@ async function getSection(userId, listId, sectionId) {
 
 /**
  * Update section (rename and/or reorder)
+ * @param {string} userId - User ID
+ * @param {string} listId - List ID
+ * @param {string} sectionId - Section ID to update
+ * @param {string} [sectionName] - New section name (optional)
+ * @param {number} [sortOrder] - New sort order (optional)
+ * @returns {object} Updated section record
+ * @throws {Error} If neither sectionName nor sortOrder provided, or if validation fails
  */
-async function updateSection(userId, listId, sectionId, sectionName) {
-	// Validate input
-	if (!sectionName || typeof sectionName !== "string" || sectionName.trim().length === 0) {
-		throw new Error("Section name is required");
+async function updateSection(userId, listId, sectionId, sectionName, sortOrder) {
+	// Validate that at least one update parameter is provided
+	const hasSectionName =
+		sectionName && typeof sectionName === "string" && sectionName.trim().length > 0;
+	const hasSortOrder = sortOrder !== null && sortOrder !== undefined;
+
+	if (!hasSectionName && !hasSortOrder) {
+		throw new Error("Either section name or sort order must be provided for update");
 	}
-	if (sectionName.trim().length > config.limits.max_section_name_length) {
+
+	// Validate section name if provided
+	if (hasSectionName && sectionName.trim().length > config.limits.max_section_name_length) {
 		throw new Error(
 			`Section name must be ${config.limits.max_section_name_length} characters or less`
 		);
+	}
+
+	// Validate sort order if provided
+	if (hasSortOrder) {
+		if (typeof sortOrder !== "number" || !Number.isInteger(sortOrder) || sortOrder < 1) {
+			throw new Error("Sort order must be a positive integer");
+		}
 	}
 
 	// Verify section exists and belongs to this list
@@ -294,11 +314,22 @@ async function updateSection(userId, listId, sectionId, sectionName) {
 	const updated = await csvService.updateRecords(
 		sectionsPath,
 		(record) => record.section_id === sectionId,
-		(record) => ({
-			...record,
-			section_name: sectionName.trim(),
-			last_modified: now,
-		})
+		(record) => {
+			const updateData = {
+				...record,
+				last_modified: now,
+			};
+
+			if (hasSectionName) {
+				updateData.section_name = sectionName.trim();
+			}
+
+			if (hasSortOrder) {
+				updateData.sort_order = String(sortOrder);
+			}
+
+			return updateData;
+		}
 	);
 
 	// Return updated record

@@ -408,15 +408,16 @@ async function updateSection(req, res) {
 	try {
 		const userId = req.userId; // Set by requireAuth middleware
 		const { list_id, section_id } = req.params;
-		const { section_name } = req.body || {};
+		const { section_name, sort_order } = req.body || {};
 
-		if (!section_name) {
+		// Validate that at least one update parameter is provided
+		if (!section_name && sort_order === undefined) {
 			return res.status(400).json({
 				success: false,
 				data: null,
 				error: {
 					code: "VALIDATION_ERROR",
-					message: "section_name is required",
+					message: "Either section_name or sort_order must be provided",
 				},
 				timestamp: new Date().toISOString(),
 			});
@@ -450,7 +451,13 @@ async function updateSection(req, res) {
 			});
 		}
 
-		const updated = await listService.updateSection(userId, list_id, section_id, section_name);
+		const updated = await listService.updateSection(
+			userId,
+			list_id,
+			section_id,
+			section_name,
+			sort_order
+		);
 		if (!updated) {
 			return res.status(404).json({
 				success: false,
@@ -469,6 +476,7 @@ async function updateSection(req, res) {
 				section_id: updated.section_id,
 				list_id: updated.list_id,
 				section_name: updated.section_name,
+				sort_order: parseInt(updated.sort_order, 10),
 				last_modified: updated.last_modified,
 			},
 			timestamp: new Date().toISOString(),
@@ -480,8 +488,10 @@ async function updateSection(req, res) {
 		// Handle validation errors
 		if (
 			error.message.includes("Section name") ||
+			error.message.includes("Sort order") ||
 			error.message.includes("required") ||
-			error.message.includes("must be")
+			error.message.includes("must be") ||
+			error.message.includes("positive integer")
 		) {
 			return res.status(400).json({
 				success: false,

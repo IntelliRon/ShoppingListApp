@@ -302,4 +302,96 @@ describe("Lists and Sections API", () => {
 		expect(response.status).toBe(404);
 		expect(response.body.success).toBe(false);
 	});
+
+	// Tests for section reordering functionality
+	it("should reorder a section by sort_order only", async () => {
+		// Create multiple sections to test reordering
+		const section1Response = await request(app)
+			.post(`/api/v1/lists/${listId}/sections`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ section_name: "Reorder Test 1" });
+
+		const section2Response = await request(app)
+			.post(`/api/v1/lists/${listId}/sections`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ section_name: "Reorder Test 2" });
+
+		const reorderTestSection1 = section1Response.body.data.section_id;
+		const reorderTestSection2 = section2Response.body.data.section_id;
+
+		// Reorder first section to position after second
+		const reorderResponse = await request(app)
+			.put(`/api/v1/lists/${listId}/sections/${reorderTestSection1}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ sort_order: 100 });
+
+		expect(reorderResponse.status).toBe(200);
+		expect(reorderResponse.body.success).toBe(true);
+		expect(reorderResponse.body.data.section_id).toBe(reorderTestSection1);
+		expect(reorderResponse.body.data.sort_order).toBe(100);
+	});
+
+	it("should rename and reorder a section simultaneously", async () => {
+		// Create a section for this test
+		const createResponse = await request(app)
+			.post(`/api/v1/lists/${listId}/sections`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ section_name: "Original Name" });
+
+		const testSectionId = createResponse.body.data.section_id;
+
+		// Update both name and sort_order
+		const updateResponse = await request(app)
+			.put(`/api/v1/lists/${listId}/sections/${testSectionId}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ section_name: "Updated Name", sort_order: 50 });
+
+		expect(updateResponse.status).toBe(200);
+		expect(updateResponse.body.success).toBe(true);
+		expect(updateResponse.body.data.section_name).toBe("Updated Name");
+		expect(updateResponse.body.data.sort_order).toBe(50);
+	});
+
+	it("should reject sort_order that is not a positive integer", async () => {
+		const response = await request(app)
+			.put(`/api/v1/lists/${listId}/sections/${sectionId}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ sort_order: 0 }); // Invalid: not positive
+
+		expect(response.status).toBe(400);
+		expect(response.body.success).toBe(false);
+		expect(response.body.error.code).toBe("VALIDATION_ERROR");
+		expect(response.body.error.message).toMatch(/positive integer/i);
+	});
+
+	it("should reject sort_order that is negative", async () => {
+		const response = await request(app)
+			.put(`/api/v1/lists/${listId}/sections/${sectionId}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ sort_order: -5 }); // Invalid: negative
+
+		expect(response.status).toBe(400);
+		expect(response.body.success).toBe(false);
+	});
+
+	it("should reject sort_order that is a non-integer number", async () => {
+		const response = await request(app)
+			.put(`/api/v1/lists/${listId}/sections/${sectionId}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ sort_order: 3.14 }); // Invalid: not integer
+
+		expect(response.status).toBe(400);
+		expect(response.body.success).toBe(false);
+	});
+
+	it("should require at least one update parameter (section_name or sort_order)", async () => {
+		const response = await request(app)
+			.put(`/api/v1/lists/${listId}/sections/${sectionId}`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({}); // No parameters
+
+		expect(response.status).toBe(400);
+		expect(response.body.success).toBe(false);
+		expect(response.body.error.message).toMatch(/Either section_name or sort_order/i);
+	});
 });

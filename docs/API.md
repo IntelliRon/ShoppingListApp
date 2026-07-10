@@ -583,30 +583,31 @@ Create a new section in a list.
 
 ### PUT /lists/{list_id}/sections/{section_id}
 
-Rename a section.
+Update a section (rename and/or reorder).
 
 **Request:**
 
 - Method: `PUT`
 - Headers: `Authorization: Bearer {token}`, `Content-Type: application/json`
 - URL Parameters: `list_id` (string), `section_id` (string)
-- Body:
+- Body: At least one of the following fields must be provided:
 
 ```json
 {
-	"section_name": "string (1-50 characters)"
+	"section_name": "string (1-50 characters, optional)",
+	"sort_order": "integer >= 1 (optional)"
 }
 ```
 
 **Response Codes:**
 
-- `200 OK` - Section renamed successfully
-- `400 Bad Request` - Validation error (empty name, exceeds 50 chars)
+- `200 OK` - Section updated successfully
+- `400 Bad Request` - Validation error (missing both parameters, name exceeds 50 chars, invalid sort_order)
 - `401 Unauthorized` - Invalid or missing token
 - `404 Not Found` - List or section not found or belongs to different user
 - `500 Internal Server Error` - Server error
 
-**Response (200):**
+**Response (200 - Rename only):**
 
 ```json
 {
@@ -615,6 +616,39 @@ Rename a section.
 		"section_id": "sec003",
 		"list_id": "l001",
 		"section_name": "Poultry",
+		"sort_order": 2,
+		"last_modified": "2026-07-10T15:30:00Z"
+	},
+	"timestamp": "2026-07-10T15:30:00Z"
+}
+```
+
+**Response (200 - Reorder only):**
+
+```json
+{
+	"success": true,
+	"data": {
+		"section_id": "sec003",
+		"list_id": "l001",
+		"section_name": "Poultry",
+		"sort_order": 100,
+		"last_modified": "2026-07-10T15:30:00Z"
+	},
+	"timestamp": "2026-07-10T15:30:00Z"
+}
+```
+
+**Response (200 - Rename and reorder):**
+
+```json
+{
+	"success": true,
+	"data": {
+		"section_id": "sec003",
+		"list_id": "l001",
+		"section_name": "Dairy & Eggs",
+		"sort_order": 50,
 		"last_modified": "2026-07-10T15:30:00Z"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
