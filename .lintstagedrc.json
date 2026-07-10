@@ -1,6 +1,6 @@
 {
-	"Web/server/src/**/*.js": ["prettier --write", "eslint --fix"],
-	"*.js": ["prettier --write", "eslint --fix"],
+	"Web/server/src/**/*.js": ["prettier --write", "npm --prefix Web/server run lint:fix --"],
+	"*.js": ["prettier --write"],
 	"*.json": ["prettier --write"],
 	"*.html": ["prettier --write"],
 	"*.css": ["prettier --write"],
