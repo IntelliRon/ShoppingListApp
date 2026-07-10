@@ -280,9 +280,15 @@ describe("CSV Service Atomicity and Concurrency", () => {
 
 			await Promise.all(promises);
 
-			// Writes should be serialized: write1 should complete before write2 starts
-			// or they may start/end interleaved, but one complete write happens before next
-			expect(executionOrder.length).toBeGreaterThan(0);
+			// Writes should be serialized: write1Start -> write1End -> write2Start -> write2End
+			// (not interleaved during the actual write operation)
+			expect(executionOrder.length).toBe(4);
+			expect(executionOrder).toEqual([
+				"write1Start",
+				"write1End",
+				"write2Start",
+				"write2End",
+			]);
 		});
 	});
 

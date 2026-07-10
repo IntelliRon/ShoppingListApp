@@ -26,17 +26,10 @@ const operationContext = new AsyncLocalStorage();
 const writeQueues = new Map();
 
 /**
- * Track operations currently executing to avoid deadlock in readCSV
- * Maps file paths to number of active operations
- */
-const activeOperations = new Map();
-
-/**
  * Enqueue an operation to execute after all previous writes complete
  * Uses non-poisoning queue-tail pattern: the map entry always resolves (never rejects)
  * while the returned promise can reject, allowing subsequent operations to continue
  * even after a failure and preventing queue orphaning
- * activeOperations is incremented when operation STARTS (not enqueued) to avoid race condition
  * operationContext tracks the executing filePath so nested reads can distinguish themselves from external reads
  */
 function enqueueFileOperation(filePath, operation) {
@@ -48,32 +41,8 @@ function enqueueFileOperation(filePath, operation) {
 
 	// Chain the operation, preserving errors for the caller
 	const operationChain = currentTail.then(() => {
-		// Mark operation as active (starts executing)
-		activeOperations.set(filePath, (activeOperations.get(filePath) || 0) + 1);
-
 		// Run operation within AsyncLocalStorage context so nested reads can detect they're nested
-		return operationContext.run(filePath, async () => {
-			try {
-				const result = await operation();
-				// Decrement active operation count on success
-				const count = (activeOperations.get(filePath) || 1) - 1;
-				if (count > 0) {
-					activeOperations.set(filePath, count);
-				} else {
-					activeOperations.delete(filePath);
-				}
-				return result;
-			} catch (error) {
-				// Decrement active operation count on failure
-				const count = (activeOperations.get(filePath) || 1) - 1;
-				if (count > 0) {
-					activeOperations.set(filePath, count);
-				} else {
-					activeOperations.delete(filePath);
-				}
-				throw error;
-			}
-		});
+		return operationContext.run(filePath, () => operation());
 	});
 
 	// Create non-poisoning tail: always resolves to prevent blocking subsequent operations

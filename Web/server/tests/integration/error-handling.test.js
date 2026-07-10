@@ -10,6 +10,9 @@ let TEST_DIR;
 let TEST_USERS_FILE;
 
 describe("API Error Handling", () => {
+	let request;
+	let app;
+
 	beforeAll(() => {
 		// Create temp directory and set env vars BEFORE requiring app
 		// (so authService initializes with correct TEST_USERS_FILE path)
@@ -22,10 +25,11 @@ describe("API Error Handling", () => {
 		delete require.cache[require.resolve("../../src/app")];
 		delete require.cache[require.resolve("../../src/services/authService")];
 		delete require.cache[require.resolve("../../src/middleware/authMiddleware")];
-	});
 
-	const request = require("supertest");
-	const app = require("../../src/app");
+		// Require AFTER clearing cache and setting env vars
+		request = require("supertest");
+		app = require("../../src/app");
+	});
 
 	afterAll(() => {
 		delete process.env.TEST_USERS_FILE;
