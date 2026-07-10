@@ -18,7 +18,7 @@ const router = express.Router();
  */
 router.post("/register", async (req, res) => {
 	try {
-		const { username, password, email } = req.body;
+		const { username, password, email } = req.body || {};
 
 		if (!username || !password || !email) {
 			return res.status(400).json({
@@ -94,7 +94,7 @@ router.post("/register", async (req, res) => {
  */
 router.post("/login", async (req, res) => {
 	try {
-		const { username, password } = req.body;
+		const { username, password } = req.body || {};
 
 		if (!username || !password) {
 			return res.status(400).json({
@@ -163,7 +163,7 @@ router.post("/logout", requireAuth, (req, res) => {
  */
 router.post("/change-password", requireAuth, async (req, res) => {
 	try {
-		const { old_password, new_password } = req.body;
+		const { old_password, new_password } = req.body || {};
 		const userId = req.userId;
 
 		if (!old_password || !new_password) {

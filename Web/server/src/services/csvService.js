@@ -434,6 +434,7 @@ function updateRecordsWithVerify(filePath, operation) {
 				} else if (
 					records.length > 0 &&
 					result.updated !== undefined &&
+					Array.isArray(result.updated) &&
 					result.updated.length === 0
 				) {
 					// If records were deleted but headers should remain

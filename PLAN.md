@@ -1079,7 +1079,7 @@ Response (503 - Unhealthy):
 ### Configuration File Location
 
 ```
-Web/server/config/defaults.json
+Web/server/src/config/defaults.json
 ```
 
 ### Default Configuration
@@ -1788,9 +1788,10 @@ Closes #42
 
 ## Document History
 
-| Date       | Author       | Changes              |
-| ---------- | ------------ | -------------------- |
-| 2026-07-04 | Project Team | Initial plan created |
+| Date       | Author       | Changes                                                                                                                        |
+| ---------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-07-05 | IntelliRon   | Phase 1 status update, authentication architecture, CSV persistence with single-writer pattern, configuration path corrections |
+| 2026-07-04 | Project Team | Initial plan created                                                                                                           |
 
 ---
 

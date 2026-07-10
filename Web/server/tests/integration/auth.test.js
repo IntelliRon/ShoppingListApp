@@ -14,6 +14,11 @@ const TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "shopping-list-api-test-"
 const TEST_USERS_FILE = path.join(TEST_DIR, "users.csv");
 process.env.TEST_USERS_FILE = TEST_USERS_FILE;
 
+// Clear require cache to ensure app/authService read the env var
+delete require.cache[require.resolve("../../src/app")];
+delete require.cache[require.resolve("../../src/services/authService")];
+delete require.cache[require.resolve("../../src/services/csvService")];
+
 const request = require("supertest");
 const app = require("../../src/app");
 
@@ -23,8 +28,6 @@ const TEST_USER = {
 	password: "testPassword123",
 	email: "testuser@example.com",
 };
-
-const USERS_FILE = TEST_USERS_FILE;
 
 describe("Authentication API", () => {
 	// Suppress expected console.error logs during testing
