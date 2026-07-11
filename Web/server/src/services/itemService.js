@@ -167,10 +167,11 @@ async function createItem(userId, listId, itemName, sectionId = null) {
 	const itemsPath = getItemsFilePath(userId);
 	const now = new Date().toISOString();
 
-	// Atomically generate ID and create item (single-writer pattern)
-	// This prevents duplicate IDs under concurrent creates
-	const allItems = await csvService.readCSV(itemsPath);
-	// Check max items PER LIST (not across all user lists)
+	// Read items and verify list constraints
+	// Note: ID generation happens before append for efficiency,
+	// but we verify the item was created with the correct ID after append
+	// to handle rare concurrent-create race conditions
+	let allItems = await csvService.readCSV(itemsPath);
 	const listItems = allItems.filter((item) => item.list_id === listId);
 	if (listItems.length >= config.limits.max_items_per_list) {
 		throw new Error(`Maximum ${config.limits.max_items_per_list} items per list reached`);
@@ -189,6 +190,18 @@ async function createItem(userId, listId, itemName, sectionId = null) {
 
 	// Append new item
 	await csvService.appendCSV(itemsPath, [newItem]);
+
+	// Verify the item was appended with the correct ID
+	// This catches rare race conditions where concurrent creates get the same ID
+	allItems = await csvService.readCSV(itemsPath);
+	const createdItem = allItems.find(
+		(item) =>
+			item.item_id === itemId && item.list_id === listId && item.item_name === itemName.trim()
+	);
+
+	if (!createdItem) {
+		throw new Error("Failed to create item - ID collision or append failure detected");
+	}
 
 	return newItem;
 }

@@ -175,20 +175,8 @@ async function updateItem(req, res) {
 		// eslint-disable-next-line no-console
 		console.error("[Items Error]", error.message);
 
-		// Handle not found errors (404)
-		if (error.message.includes("not found")) {
-			return res.status(404).json({
-				success: false,
-				data: null,
-				error: {
-					code: "NOT_FOUND",
-					message: error.message,
-				},
-				timestamp: new Date().toISOString(),
-			});
-		}
-
-		// Handle validation errors (400)
+		// Handle validation errors (400) BEFORE checking for not found
+		// This must come first to catch "Section not found" and similar validation errors
 		if (
 			error.message.includes("Item name") ||
 			error.message.includes("Section not found") ||
@@ -201,6 +189,19 @@ async function updateItem(req, res) {
 				data: null,
 				error: {
 					code: "VALIDATION_ERROR",
+					message: error.message,
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
+
+		// Handle item not found errors (404) - check exact message to avoid catching "Section not found"
+		if (error.message === "Item not found") {
+			return res.status(404).json({
+				success: false,
+				data: null,
+				error: {
+					code: "NOT_FOUND",
 					message: error.message,
 				},
 				timestamp: new Date().toISOString(),
