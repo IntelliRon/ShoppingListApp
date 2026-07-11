@@ -105,7 +105,7 @@ npm run test:coverage # Generate coverage report
 
 **Target Coverage:** ≥80% for new code
 
-### Test-Driven Development for New Functions
+### Test-Driven Development for New Functions (IMPORTANT)
 
 When adding or modifying a function, follow this strict workflow:
 

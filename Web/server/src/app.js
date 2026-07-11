@@ -17,8 +17,8 @@ app.use(express.urlencoded({ extended: true }));
 // CORS Configuration
 app.use(cors(config.server.cors));
 
-// Rate Limiting
-if (config.rateLimit.enabled) {
+// Rate Limiting (per-IP; disabled in test environment)
+if (config.rateLimit.enabled && process.env.NODE_ENV !== "test") {
 	const limiter = rateLimit({
 		windowMs: config.rateLimit.windowMs,
 		max: config.rateLimit.max,
@@ -54,14 +54,14 @@ app.get("/api/v1/health", (req, res) => {
 		const path = require("path");
 
 		// Verify CSV database directory is accessible
-		const dbPath = path.join(__dirname, "..", config.database.path);
+		// Support test database path via environment variable (matching listService path resolution)
+		const dbPath = process.env.TEST_DB_PATH || path.join(__dirname, "..", config.database.path);
 		fs.accessSync(dbPath, fs.constants.R_OK | fs.constants.W_OK);
 
 		res.status(200).json({
 			success: true,
 			data: {
 				status: "healthy",
-				timestamp: new Date().toISOString(),
 				uptime: Math.floor(process.uptime()),
 				environment: process.env.NODE_ENV || "development",
 				checks: {
@@ -69,6 +69,7 @@ app.get("/api/v1/health", (req, res) => {
 					csvAccess: "ok",
 				},
 			},
+			timestamp: new Date().toISOString(),
 		});
 	} catch (error) {
 		// eslint-disable-next-line no-console
@@ -87,8 +88,8 @@ app.get("/api/v1/health", (req, res) => {
 
 // Routes
 app.use("/api/v1/auth", require("./routes/auth"));
-// TODO: Add remaining routes as implemented in Phase 2+
-// app.use('/api/v1/lists', require('./routes/lists'));
+app.use("/api/v1/lists", require("./routes/lists"));
+// TODO: Add remaining routes as implemented in Phase 3+
 // app.use('/api/v1/sync', require('./routes/sync'));
 
 // 404 Handler

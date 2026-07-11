@@ -18,6 +18,7 @@ ShoppingListApp/
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js 16+ and npm 8+
 - Git
 
@@ -80,26 +81,57 @@ npm run lint:fix           # Auto-fix style issues
 ## Technology Stack
 
 **Backend:**
+
 - Node.js with Express.js
 - CSV-based persistence
 - JWT for authentication
 - bcryptjs for password hashing
 
 **Frontend (Android):**
+
 - Kotlin (native Android)
 - Retrofit for API communication
 - MVVM architecture pattern
 
-## API
+## API Documentation
 
-All endpoints documented in [PLAN.md - API Specification](PLAN.md#api-specification)
+**Complete API documentation:** [docs/API.md](docs/API.md)
 
-Base URL: `https://api.shoppinglist.intelliron.xyz/api/v1`
+Includes:
+
+- Authentication endpoints (register, login, logout, change-password)
+- Shopping list CRUD operations
+- Section management
+- Health check endpoint
+- Request/response examples for all endpoints
+- Error codes and data constraints
+
+**Development Base URL:** `http://localhost:3000/api/v1`
+**Production Base URL:** `https://api.shoppinglist.intelliron.xyz/api/v1`
 
 ## Status
 
-**Current Phase:** Phase 0 - Project Setup  
-**Project Date:** 2026-07-04
+**Current Phase:** Phase 2 - Backend API: Lists & Sections (Complete)
+
+### Completed Features
+
+- ✅ Phase 1: Backend Core (Authentication, JWT, file locking)
+- ✅ Phase 2: Lists & Sections CRUD (Create, read, update, delete operations)
+- ✅ Authorization & per-user data isolation
+- ✅ Input validation using config limits
+- ✅ 127 passing tests across 7 test suites
+- ✅ Comprehensive API documentation
+
+### In Development
+
+- 🔄 Phase 3: Items & Sync (Item CRUD, completion toggle, client-server sync with conflict resolution)
+
+### Upcoming
+
+- 📋 Phase 4: Android Frontend implementation
+- 📋 MVP-2: Advanced features (token rotation, offline sync, etc.)
+
+**Project Date:** 2026-07-10
 
 ## License
 
