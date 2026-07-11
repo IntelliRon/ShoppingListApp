@@ -4,29 +4,28 @@ on:
   push:
     branches:
       - master
-  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-      
+          node-version: "18"
+
       - name: Install dependencies
         working-directory: Web/server
         run: npm install
-      
+
       - name: Run tests
         working-directory: Web/server
         run: npm test
-  
+
   release:
     needs: test
     runs-on: ubuntu-latest
@@ -37,13 +36,13 @@ jobs:
     outputs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      
+
       - name: Semantic Release
         id: semantic
         uses: cycjimmy/semantic-release-action@v3
@@ -55,22 +54,22 @@ jobs:
             ]
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
+
   deploy:
     needs: release
-    if: needs.release.outputs.new_release_published == 'true' || github.event_name == 'workflow_dispatch'
+    if: needs.release.outputs.new_release_published == 'true'
     runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: read
       statuses: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -81,7 +80,7 @@ jobs:
           script: |
             cd ${{ secrets.DEPLOY_DIR }}
             bash .github/scripts/deploy.sh
-      
+
       - name: Post deployment status
         if: always()
         uses: actions/github-script@v6
@@ -96,36 +95,36 @@ jobs:
               context: 'Deployment to Production',
               target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
             });
-  
+
   build-apk:
     needs: release
     if: needs.release.outputs.new_release_published == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
+
       # Note: This job requires the Gradle wrapper (App/gradlew, App/gradlew.bat, App/gradle/wrapper/)
       # to be committed to the repository. Generate with: cd App && gradle wrapper --gradle-version=8.9 && cd ..
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
-          java-version: '17'
-      
+          distribution: "temurin"
+          java-version: "17"
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
-      
+
       - name: Decode keystore
         if: env.KEYSTORE_BASE64 != ''
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > App/release.keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-      
+
       - name: Build signed APK
         if: env.KEYSTORE_BASE64 != ''
         working-directory: App
@@ -138,7 +137,7 @@ jobs:
             -Pandroid.injected.signing.key.password=${{ secrets.KEYSTORE_ALIAS_PASSWORD }}
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-      
+
       - name: Build unsigned APK (if no keystore)
         if: env.KEYSTORE_BASE64 == ''
         working-directory: App
@@ -147,7 +146,7 @@ jobs:
           ./gradlew assembleRelease
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-      
+
       - name: Determine APK filename
         id: apk
         run: |
@@ -159,7 +158,7 @@ jobs:
             echo "APK not found"
             exit 1
           fi
-      
+
       - name: Upload APK to Release
         uses: softprops/action-gh-release@v1
         with:
@@ -167,5 +166,3 @@ jobs:
           tag_name: v${{ needs.release.outputs.new_release_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
