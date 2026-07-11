@@ -8,11 +8,16 @@
  * POST /lists/:list_id/sections - Create section
  * PUT /lists/:list_id/sections/:section_id - Rename section
  * DELETE /lists/:list_id/sections/:section_id - Delete section
+ * GET /lists/:list_id/items - Get items for list
+ * POST /lists/:list_id/items - Create item
+ * PUT /lists/:list_id/items/:item_id - Update item
+ * DELETE /lists/:list_id/items/:item_id - Delete item
  */
 
 const express = require("express");
 const { requireAuth } = require("../middleware/authMiddleware");
 const listsController = require("../controllers/listsController");
+const itemsController = require("../controllers/itemsController");
 
 const router = express.Router();
 
@@ -30,5 +35,11 @@ router.get("/:list_id/sections", listsController.getListSections);
 router.post("/:list_id/sections", listsController.createSection);
 router.put("/:list_id/sections/:section_id", listsController.updateSection);
 router.delete("/:list_id/sections/:section_id", listsController.deleteSection);
+
+// Item endpoints
+router.get("/:list_id/items", itemsController.getListItems);
+router.post("/:list_id/items", itemsController.createItem);
+router.put("/:list_id/items/:item_id", itemsController.updateItem);
+router.delete("/:list_id/items/:item_id", itemsController.deleteItem);
 
 module.exports = router;

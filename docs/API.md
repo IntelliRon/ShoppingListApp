@@ -475,7 +475,7 @@ Rename an existing shopping list with optional optimistic locking support.
 
 ### DELETE /lists/{list_id}
 
-Delete a shopping list and all its sections. (Item cleanup will be added when items are implemented in Phase 3.)
+Delete a shopping list and all its associated sections and items.
 
 **Request:**
 
@@ -731,20 +731,303 @@ Delete a section from a list.
 
 ## Items Endpoints (Phase 3)
 
-_Coming in Phase 3 - Backend API: Items & Sync_
+### Get All Items for List
 
-- `GET /lists/{list_id}/items` - Get all items for list
-- `POST /lists/{list_id}/items` - Create new item
-- `PUT /lists/{list_id}/items/{item_id}` - Update item (rename, change section, toggle completion)
-- `DELETE /lists/{list_id}/items/{item_id}` - Delete item
+**Endpoint:** `GET /lists/{list_id}/items`
+
+**Authentication:** Required (Bearer token)
+
+**Request:**
+
+```http
+GET /api/v1/lists/l001/items HTTP/1.1
+Authorization: Bearer eyJhbGc...
+```
+
+**Response (200):**
+
+```json
+{
+	"success": true,
+	"data": [
+		{
+			"item_id": "i001",
+			"item_name": "Apples",
+			"section_id": "sec001",
+			"is_completed": false,
+			"created_at": "2026-01-20T10:00:00Z",
+			"last_modified": "2026-01-20T10:00:00Z"
+		},
+		{
+			"item_id": "i002",
+			"item_name": "Milk",
+			"section_id": null,
+			"is_completed": true,
+			"created_at": "2026-01-20T10:05:00Z",
+			"last_modified": "2026-01-21T08:30:00Z"
+		}
+	],
+	"timestamp": "2026-07-10T15:30:00Z"
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid or missing token
+- `500 Internal Server Error` - Server error
+
+---
+
+### Create Item
+
+**Endpoint:** `POST /lists/{list_id}/items`
+
+**Authentication:** Required (Bearer token)
+
+**Request Body:**
+
+```json
+{
+	"item_name": "Carrots",
+	"section_id": "sec001" // optional, null for ungrouped
+}
+```
+
+**Response (201):**
+
+```json
+{
+	"success": true,
+	"data": {
+		"item_id": "i004",
+		"item_name": "Carrots",
+		"section_id": "sec001",
+		"is_completed": false,
+		"created_at": "2026-07-10T15:30:00Z",
+		"last_modified": "2026-07-10T15:30:00Z"
+	},
+	"timestamp": "2026-07-10T15:30:00Z"
+}
+```
+
+**Validation Errors (400):**
+
+- `item_name` is required
+- `item_name` must be 1-200 characters
+- `section_id` is invalid for this list
+- Maximum items per list exceeded
+- List not found
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid or missing token
+- `400 Bad Request` - Validation error
+- `500 Internal Server Error` - Server error
+
+---
+
+### Update Item
+
+**Endpoint:** `PUT /lists/{list_id}/items/{item_id}`
+
+**Authentication:** Required (Bearer token)
+
+**Request Body (all fields optional, but at least one required):**
+
+```json
+{
+	"item_name": "Carrots",
+	"section_id": "sec002",
+	"is_completed": true
+}
+```
+
+**Response (200):**
+
+```json
+{
+	"success": true,
+	"data": {
+		"item_id": "i004",
+		"item_name": "Carrots",
+		"section_id": "sec002",
+		"is_completed": true,
+		"last_modified": "2026-07-10T15:35:00Z"
+	},
+	"timestamp": "2026-07-10T15:35:00Z"
+}
+```
+
+**Validation Errors (400):**
+
+- At least one update field required (item_name, section_id, or is_completed)
+- `item_name` must be 1-200 characters
+- `section_id` is invalid for this list
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid or missing token
+- `404 Not Found` - Item not found
+- `400 Bad Request` - Validation error
+- `500 Internal Server Error` - Server error
+
+---
+
+### Delete Item
+
+**Endpoint:** `DELETE /lists/{list_id}/items/{item_id}`
+
+**Authentication:** Required (Bearer token)
+
+**Response (200):**
+
+```json
+{
+	"success": true,
+	"data": null,
+	"timestamp": "2026-07-10T15:40:00Z"
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid or missing token
+- `404 Not Found` - Item not found
+- `500 Internal Server Error` - Server error
 
 ---
 
 ## Sync Endpoints (Phase 3)
 
-_Coming in Phase 3 - Backend API: Items & Sync_
+### Sync Items with Conflict Resolution
 
-- `POST /sync/items` - Client-server reconciliation with conflict resolution
+**Endpoint:** `POST /sync/items`
+
+**Authentication:** Required (Bearer token)
+
+**Purpose:** Reconcile client-side items with server state using last_modified timestamps for conflict resolution.
+
+**Request Body:**
+
+```json
+{
+	"list_id": "l001",
+	"client_items": [
+		{
+			"item_id": "i001",
+			"item_name": "Apples",
+			"section_id": "sec001",
+			"is_completed": false,
+			"last_modified": "2026-07-10T14:00:00Z",
+			"operation": "update"
+		},
+		{
+			"item_id": "i999",
+			"item_name": "New Item",
+			"section_id": null,
+			"is_completed": false,
+			"last_modified": "2026-07-10T15:00:00Z",
+			"operation": "create"
+		},
+		{
+			"item_id": "i002",
+			"item_name": "Milk",
+			"section_id": null,
+			"is_completed": true,
+			"last_modified": "2026-07-10T15:15:00Z",
+			"operation": "delete"
+		}
+	],
+	"last_sync": "2026-07-10T09:00:00Z"
+}
+```
+
+**Operations:**
+
+- `create` - Add new item on server
+- `update` - Modify existing item on server
+- `delete` - Remove item from server
+
+**Response (200):**
+
+```json
+{
+	"success": true,
+	"data": {
+		"server_items": [
+			{
+				"item_id": "i001",
+				"item_name": "Apples",
+				"section_id": "sec001",
+				"is_completed": false,
+				"last_modified": "2026-07-10T14:00:00Z",
+				"operation": "update"
+			},
+			{
+				"item_id": "i999",
+				"item_name": "New Item",
+				"section_id": null,
+				"is_completed": false,
+				"last_modified": "2026-07-10T15:00:00Z",
+				"operation": "update"
+			}
+		],
+		"conflicts": [
+			{
+				"item_id": "i002",
+				"type": "DELETE_CONFLICT",
+				"message": "Server version is newer",
+				"server_version": {
+					"item_id": "i002",
+					"item_name": "Milk (Fresh)",
+					"section_id": "sec002",
+					"is_completed": false,
+					"last_modified": "2026-07-10T15:30:00Z",
+					"operation": "update"
+				},
+				"client_version": {
+					"item_id": "i002",
+					"item_name": "Milk",
+					"section_id": null,
+					"is_completed": true,
+					"last_modified": "2026-07-10T15:15:00Z",
+					"operation": "delete"
+				}
+			}
+		],
+		"synced_at": "2026-07-10T15:35:00Z"
+	},
+	"timestamp": "2026-07-10T15:35:00Z"
+}
+```
+
+**Conflict Resolution Strategy:**
+
+- **CREATE_CONFLICT:** Item already exists on server - server version kept, conflict reported
+- **UPDATE_CONFLICT:** Server has newer changes - server version kept, conflict reported
+- **DELETE_CONFLICT:** Server has newer changes - item not deleted, conflict reported
+
+**Validation Errors (400):**
+
+- `list_id` is required
+- `client_items` must be an array
+- Each item must have `item_id` and `operation`
+- `operation` must be one of: create, update, delete
+
+**Error Responses:**
+
+- `401 Unauthorized` - Invalid or missing token
+- `404 Not Found` - List not found
+- `400 Bad Request` - Validation error
+- `500 Internal Server Error` - Server error
+
+**Notes:**
+
+- Items with identical client and server timestamps are considered equal; server version is authoritative on conflicts
+- Timestamps must be ISO 8601 formatted strings
+- Client must handle conflicts and perform retry sync if needed
+- Returning all server items allows client to rebuild full state
+- Operations not included in the sync are considered unchanged on client
 
 ---
 
