@@ -106,34 +106,28 @@ async function getItem(userId, listId, itemId) {
 
 /**
  * Verify section exists in the list
+ * csvService.readCSV returns [] for missing files, so other errors are real failures
  */
 async function verifySection(userId, listId, sectionId) {
 	if (!sectionId) {
 		return true; // null section is valid (ungrouped items)
 	}
 
-	try {
-		const sectionsPath = getSectionsFilePath(userId);
-		const sections = await csvService.readCSV(sectionsPath);
-		const section = sections.find((s) => s.section_id === sectionId && s.list_id === listId);
-		return section !== undefined;
-	} catch (error) {
-		return false;
-	}
+	const sectionsPath = getSectionsFilePath(userId);
+	const sections = await csvService.readCSV(sectionsPath);
+	const section = sections.find((s) => s.section_id === sectionId && s.list_id === listId);
+	return section !== undefined;
 }
 
 /**
  * Verify list exists
+ * csvService.readCSV returns [] for missing files, so other errors are real failures
  */
 async function verifyList(userId, listId) {
-	try {
-		const listsPath = getListsFilePath(userId);
-		const lists = await csvService.readCSV(listsPath);
-		const list = lists.find((l) => l.list_id === listId);
-		return list !== undefined;
-	} catch (error) {
-		return false;
-	}
+	const listsPath = getListsFilePath(userId);
+	const lists = await csvService.readCSV(listsPath);
+	const list = lists.find((l) => l.list_id === listId);
+	return list !== undefined;
 }
 
 /**
@@ -167,10 +161,9 @@ async function createItem(userId, listId, itemName, sectionId = null) {
 	const itemsPath = getItemsFilePath(userId);
 	const now = new Date().toISOString();
 
-	// Read items and verify list constraints
-	// Note: ID generation happens before append for efficiency,
-	// but we verify the item was created with the correct ID after append
-	// to handle rare concurrent-create race conditions
+	// ATOMICITY IMPLEMENTATION:
+	// This creates a new item atomically by using a read-verify-append-verify pattern.
+	// While not perfectly atomic at filesystem level, it detects and rejects collisions.
 	let allItems = await csvService.readCSV(itemsPath);
 	const listItems = allItems.filter((item) => item.list_id === listId);
 	if (listItems.length >= config.limits.max_items_per_list) {
@@ -188,11 +181,11 @@ async function createItem(userId, listId, itemName, sectionId = null) {
 		last_modified: now,
 	};
 
-	// Append new item
+	// Append new item to CSV
 	await csvService.appendCSV(itemsPath, [newItem]);
 
-	// Verify the item was appended with the correct ID
-	// This catches rare race conditions where concurrent creates get the same ID
+	// Post-append verification: Detect if concurrent creates caused ID collision
+	// If collision detected, file is already corrupted and caller must retry
 	allItems = await csvService.readCSV(itemsPath);
 	const createdItem = allItems.find(
 		(item) =>
@@ -200,7 +193,21 @@ async function createItem(userId, listId, itemName, sectionId = null) {
 	);
 
 	if (!createdItem) {
-		throw new Error("Failed to create item - ID collision or append failure detected");
+		throw new Error("Failed to create item - append failure detected");
+	}
+
+	// Additional safety check: Detect if ID collision occurred with concurrent write
+	// Only check within the same list since IDs are unique per user across all lists
+	const duplicateIds = allItems.filter(
+		(item) => item.item_id === itemId && item.list_id === listId
+	);
+	if (duplicateIds.length > 1) {
+		// File has been corrupted by concurrent ID collision. This should never happen
+		// in single-user access patterns, but can occur with true concurrent calls.
+		// Client should retry, which will generate a new ID on next attempt.
+		throw new Error(
+			"Concurrent write conflict detected - ID collision, file corrupted, request retry"
+		);
 	}
 
 	return newItem;
@@ -376,4 +383,7 @@ module.exports = {
 	deleteItem,
 	deleteSectionItems,
 	deleteListItems,
+	generateItemId, // Exported for testing
+	verifyList, // Exported for testing
+	verifySection, // Exported for testing
 };
