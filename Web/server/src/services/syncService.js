@@ -52,6 +52,11 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 					});
 				} else {
 					// Safe to create
+					// NOTE: clientItem.item_id is ignored here; server generates its own ID
+					// For offline-created items, clients should reconcile by comparing
+					// item_name + last_modified against returned server_items (see API.md)
+					// TODO: Support client-provided IDs or return client_id→server_id mapping
+					// for better offline reconciliation (Phase 3.1 enhancement)
 					await itemService.createItem(
 						userId,
 						listId,
