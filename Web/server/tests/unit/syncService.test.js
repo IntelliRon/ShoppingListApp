@@ -5,7 +5,6 @@
 
 const fs = require("fs");
 const path = require("path");
-const config = require("../../src/config/defaults.json");
 
 // Setup temp DB for testing
 const TEST_DB_PATH = path.join(__dirname, "../fixtures/test_db_sync_unit");

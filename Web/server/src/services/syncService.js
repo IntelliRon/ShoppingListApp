@@ -45,7 +45,10 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 		}
 
 		const serverItem = serverItemsMap[clientItem.item_id];
-		const clientTimestamp = new Date(clientItem.last_modified).getTime();
+		// Only read last_modified for update/delete (create operations don't require it)
+		const clientTimestamp = ["update", "delete"].includes(clientItem.operation)
+			? new Date(clientItem.last_modified).getTime()
+			: NaN;
 
 		if (clientItem.operation === "create") {
 			if (serverItem) {
@@ -83,12 +86,20 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 
 				if (clientTimestamp >= serverTimestamp) {
 					// Client is same or newer - safe to update
-					await itemService.updateItem(userId, listId, clientItem.item_id, {
-						item_name: clientItem.item_name,
-						section_id: clientItem.section_id || null,
-						is_completed:
-							clientItem.is_completed === true || clientItem.is_completed === "true",
-					});
+					const updatedItem = await itemService.updateItem(
+						userId,
+						listId,
+						clientItem.item_id,
+						{
+							item_name: clientItem.item_name,
+							section_id: clientItem.section_id || null,
+							is_completed:
+								clientItem.is_completed === true ||
+								clientItem.is_completed === "true",
+						}
+					);
+					// Update serverItemsMap with new item state after update
+					serverItemsMap[clientItem.item_id] = updatedItem;
 				} else {
 					// Server is newer - conflict, keep server version
 					conflicts.push({
@@ -112,6 +123,8 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 				if (clientTimestamp >= serverTimestamp) {
 					// Client timestamp is same or newer - safe to delete
 					await itemService.deleteItem(userId, listId, clientItem.item_id);
+					// Remove deleted item from serverItemsMap to prevent stale state
+					delete serverItemsMap[clientItem.item_id];
 				} else {
 					// Server has newer changes - conflict, keep server version
 					conflicts.push({

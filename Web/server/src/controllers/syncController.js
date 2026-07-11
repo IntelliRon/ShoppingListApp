@@ -96,16 +96,19 @@ async function syncItems(req, res) {
 			}
 
 			// Require item_name for create/update operations
-			if (["create", "update"].includes(item.operation) && !item.item_name) {
-				return res.status(400).json({
-					success: false,
-					data: null,
-					error: {
-						code: "VALIDATION_ERROR",
-						message: `item_name is required for ${item.operation} operation`,
-					},
-					timestamp: new Date().toISOString(),
-				});
+			if (["create", "update"].includes(item.operation)) {
+				const trimmedName = item.item_name ? item.item_name.toString().trim() : "";
+				if (!trimmedName) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "VALIDATION_ERROR",
+							message: `item_name is required for ${item.operation} operation`,
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
 			}
 		}
 
