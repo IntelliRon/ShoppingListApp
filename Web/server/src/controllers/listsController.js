@@ -429,7 +429,7 @@ async function updateSection(req, res) {
 		const { section_name, sort_order, expected_version } = req.body || {};
 
 		// Validate that at least one update parameter is provided
-		if (!section_name && sort_order === undefined) {
+		if (!section_name && (sort_order === undefined || sort_order === null)) {
 			return res.status(400).json({
 				success: false,
 				data: null,
