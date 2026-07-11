@@ -26,6 +26,21 @@ async function getListItems(req, res) {
 			});
 		}
 
+		// Validate that the list exists
+		const listService = require("../services/listService");
+		const listExists = await listService.getList(userId, list_id);
+		if (!listExists) {
+			return res.status(404).json({
+				success: false,
+				data: null,
+				error: {
+					code: "NOT_FOUND",
+					message: "List not found",
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
+
 		const items = await itemService.getListItems(userId, list_id);
 
 		res.status(200).json({

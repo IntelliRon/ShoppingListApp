@@ -69,6 +69,10 @@ describe("Sync API", () => {
 		jest.restoreAllMocks();
 		// Clean up test directory
 		fs.rmSync(TEST_DIR, { recursive: true, force: true });
+		// Clean up environment variables to prevent cross-test interference
+		delete process.env.TEST_USERS_FILE;
+		delete process.env.TEST_BLACKLIST_FILE;
+		delete process.env.TEST_DB_PATH;
 	});
 
 	describe("POST /sync/items", () => {
@@ -120,6 +124,11 @@ describe("Sync API", () => {
 				(item) => item.item_name === "Client Apples"
 			);
 			expect(createdItem).toBeDefined();
+
+			// Verify id_mapping contains the client_id→server_id mapping
+			expect(res.body.data.id_mapping).toBeDefined();
+			expect(res.body.data.id_mapping["i_client_1"]).toBeDefined();
+			expect(res.body.data.id_mapping["i_client_1"]).toBe(createdItem.item_id);
 		});
 
 		it("should handle create conflict when item already exists", async () => {
@@ -304,6 +313,62 @@ describe("Sync API", () => {
 			// Verify item was deleted
 			const deletedItem = res.body.data.server_items.find((item) => item.item_id === itemId);
 			expect(deletedItem).toBeUndefined();
+		});
+
+		it("should handle delete conflict when server version is newer", async () => {
+			// Create an item
+			const createRes = await request(app)
+				.post(`/api/v1/lists/${listId}/items`)
+				.set("Authorization", `Bearer ${authToken}`)
+				.send({
+					item_name: "Item with Delete Conflict",
+				});
+
+			const itemId = createRes.body.data.item_id;
+			const serverTimestamp = createRes.body.data.last_modified;
+
+			// Update on server to get newer timestamp
+			await request(app)
+				.put(`/api/v1/lists/${listId}/items/${itemId}`)
+				.set("Authorization", `Bearer ${authToken}`)
+				.send({
+					item_name: "Server Updated Name",
+				});
+
+			// Try to sync a delete with older timestamp
+			const oldTimestamp = new Date(
+				new Date(serverTimestamp).getTime() - 10000
+			).toISOString();
+
+			const clientItems = [
+				{
+					item_id: itemId,
+					item_name: "Item with Delete Conflict",
+					section_id: null,
+					is_completed: false,
+					last_modified: oldTimestamp,
+					operation: "delete",
+				},
+			];
+
+			const res = await request(app)
+				.post("/api/v1/sync/items")
+				.set("Authorization", `Bearer ${authToken}`)
+				.send({
+					list_id: listId,
+					client_items: clientItems,
+				});
+
+			expect(res.status).toBe(200);
+			expect(res.body.success).toBe(true);
+			expect(res.body.data.conflicts).toHaveLength(1);
+			expect(res.body.data.conflicts[0].type).toBe("DELETE_CONFLICT");
+			expect(res.body.data.conflicts[0].message).toMatch(/newer/);
+
+			// Verify item was NOT deleted (server version kept)
+			const serverItem = res.body.data.server_items.find((item) => item.item_id === itemId);
+			expect(serverItem).toBeDefined();
+			expect(serverItem.item_name).toBe("Server Updated Name");
 		});
 
 		it("should fail without list_id", async () => {

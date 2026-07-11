@@ -54,6 +54,7 @@ describe("Authentication API", () => {
 		// Clear the environment variables to prevent leaking to other test files
 		delete process.env.TEST_USERS_FILE;
 		delete process.env.TEST_BLACKLIST_FILE;
+		delete process.env.TEST_DB_PATH;
 	});
 
 	describe("POST /api/v1/auth/register", () => {

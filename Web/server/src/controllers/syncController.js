@@ -88,7 +88,7 @@ async function syncItems(req, res) {
 						data: null,
 						error: {
 							code: "VALIDATION_ERROR",
-							message: "last_modified must be valid ISO 8601 timestamp",
+							message: "last_modified must be a valid timestamp",
 						},
 						timestamp: new Date().toISOString(),
 					});

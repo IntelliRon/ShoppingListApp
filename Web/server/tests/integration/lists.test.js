@@ -20,8 +20,10 @@ process.env.TEST_DB_PATH = TEST_DB_DIR;
 delete require.cache[require.resolve("../../src/app")];
 delete require.cache[require.resolve("../../src/services/authService")];
 delete require.cache[require.resolve("../../src/services/csvService")];
+delete require.cache[require.resolve("../../src/services/itemService")];
 delete require.cache[require.resolve("../../src/services/listService")];
 delete require.cache[require.resolve("../../src/middleware/authMiddleware")];
+delete require.cache[require.resolve("../../src/controllers/itemsController")];
 delete require.cache[require.resolve("../../src/controllers/listsController")];
 delete require.cache[require.resolve("../../src/routes/lists")];
 delete require.cache[require.resolve("../../src/routes/auth")];
@@ -61,6 +63,7 @@ describe("Lists and Sections API", () => {
 
 		// Clear require caches
 		delete require.cache[require.resolve("../../src/app")];
+		delete require.cache[require.resolve("../../src/services/itemService")];
 		delete require.cache[require.resolve("../../src/services/listService")];
 
 		// Clean up test files and directory
@@ -501,6 +504,49 @@ describe("Lists and Sections API", () => {
 		// Item 1 should now have sort_order 4
 		const item1 = updatedSections.find((s) => s.section_name === "Item 1");
 		expect(item1.sort_order).toBe(4);
+	});
+
+	// Cascade deletion tests (items deleted when list/section is deleted)
+	it("should delete all items when a list is deleted", async () => {
+		// Create a new list with items
+		const listRes = await request(app)
+			.post("/api/v1/lists")
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "List to Delete with Items" });
+
+		expect(listRes.status).toBe(201);
+		const deleteListId = listRes.body.data.list_id;
+
+		// Create an item in this list
+		const itemRes = await request(app)
+			.post(`/api/v1/lists/${deleteListId}/items`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ item_name: "Item in Deleted List" });
+
+		expect(itemRes.status).toBe(201);
+		const itemId = itemRes.body.data.item_id;
+
+		// Verify item exists
+		let getItemsRes = await request(app)
+			.get(`/api/v1/lists/${deleteListId}/items`)
+			.set("Authorization", `Bearer ${authToken}`);
+
+		expect(getItemsRes.body.data).toHaveLength(1);
+		expect(getItemsRes.body.data[0].item_id).toBe(itemId);
+
+		// Delete the list
+		const deleteRes = await request(app)
+			.delete(`/api/v1/lists/${deleteListId}`)
+			.set("Authorization", `Bearer ${authToken}`);
+
+		expect(deleteRes.status).toBe(200);
+
+		// Verify items are gone (list no longer exists)
+		getItemsRes = await request(app)
+			.get(`/api/v1/lists/${deleteListId}/items`)
+			.set("Authorization", `Bearer ${authToken}`);
+
+		expect(getItemsRes.status).toBe(404);
 	});
 
 	// Optimistic locking tests (version-based conflict detection)

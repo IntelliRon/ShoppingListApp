@@ -77,6 +77,10 @@ describe("Items API", () => {
 		jest.restoreAllMocks();
 		// Clean up test directory
 		fs.rmSync(TEST_DIR, { recursive: true, force: true });
+		// Clean up environment variables to prevent cross-test interference
+		delete process.env.TEST_USERS_FILE;
+		delete process.env.TEST_BLACKLIST_FILE;
+		delete process.env.TEST_DB_PATH;
 	});
 
 	describe("GET /lists/:list_id/items", () => {
