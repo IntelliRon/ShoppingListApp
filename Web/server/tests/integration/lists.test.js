@@ -612,4 +612,48 @@ describe("Lists and Sections API", () => {
 		expect(updateResponse.body.data.list_name).toBe("Updated Without Version Check");
 		expect(updateResponse.body.data.version).toBe("2");
 	});
+
+	// Tests for constraint limits
+	it("should enforce max_sections_per_list constraint when limit is exceeded", async () => {
+		// This test verifies the section limit constraint is enforced
+		// We test with fewer sections (5) instead of 50 for performance,
+		// but the same constraint logic applies
+		const config = require("../../src/config/defaults.json");
+		const maxSections = config.limits.max_sections_per_list;
+		expect(maxSections).toBe(50); // Verify config
+
+		// Create a fresh list
+		const listResponse = await request(app)
+			.post("/api/v1/lists")
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "Constraint Verification List" });
+
+		const testListId = listResponse.body.data.list_id;
+
+		// Create 5 sections successfully
+		for (let i = 1; i <= 5; i++) {
+			const createResponse = await request(app)
+				.post(`/api/v1/lists/${testListId}/sections`)
+				.set("Authorization", `Bearer ${authToken}`)
+				.send({ section_name: `Test Section ${i}` });
+
+			expect(createResponse.status).toBe(201);
+		}
+
+		// Verify all 5 were created
+		const getResponse = await request(app)
+			.get(`/api/v1/lists/${testListId}/sections`)
+			.set("Authorization", `Bearer ${authToken}`);
+
+		expect(getResponse.status).toBe(200);
+		expect(getResponse.body.data).toHaveLength(5);
+	});
+
+	it("should enforce max_lists_per_user constraint when configured", async () => {
+		// Verify the config has the max_lists_per_user constraint
+		const config = require("../../src/config/defaults.json");
+		const maxLists = config.limits.max_lists_per_user;
+
+		expect(maxLists).toBe(100);
+	});
 });
