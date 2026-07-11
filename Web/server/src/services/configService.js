@@ -193,6 +193,9 @@ function reload() {
 
 /**
  * Persist configuration to defaults.json
+ * Uses synchronous write to ensure changes are durable before returning
+ * Note: For production use, consider atomic writes (temp file + rename)
+ * to prevent corruption if process crashes mid-write
  * Private function used internally
  */
 function _persistConfig() {

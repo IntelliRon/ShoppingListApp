@@ -1095,7 +1095,8 @@ Get current server configuration. **Requires developer role.**
 			"max": 100
 		},
 		"logging": {
-			"level": "info"
+			"level": "info",
+			"format": "json"
 		}
 	},
 	"timestamp": "2026-07-11T10:00:00Z"

@@ -362,9 +362,13 @@ const App = (() => {
 	 */
 	async function handleSaveConfig() {
 		const updates = {};
+		let hasValidationError = false;
 
 		// Collect all form values with validation
 		document.querySelectorAll("[data-config-key]").forEach((input) => {
+			// Stop processing if validation error already found
+			if (hasValidationError) return;
+
 			const key = input.dataset.configKey;
 			let value = input.value;
 
@@ -375,26 +379,31 @@ const App = (() => {
 				// Basic sanity checks (backend will do full validation)
 				if (Number.isNaN(value)) {
 					showError(`Invalid number value for ${key}`);
+					hasValidationError = true;
 					return;
 				}
 
 				if (key.includes("port") && (value < 1 || value > 65535)) {
 					showError(`Port must be between 1 and 65535`);
+					hasValidationError = true;
 					return;
 				}
 
 				if (key.includes("bcrypt_rounds") && (value < 4 || value > 15)) {
 					showError(`Bcrypt rounds must be between 4 and 15`);
+					hasValidationError = true;
 					return;
 				}
 
 				if (key.includes("password_min_length") && (value < 4 || value > 128)) {
 					showError(`Password min length must be between 4 and 128`);
+					hasValidationError = true;
 					return;
 				}
 
 				if (key.startsWith("limits.") && (value < 1 || value > 10000)) {
 					showError(`${key} must be between 1 and 10000`);
+					hasValidationError = true;
 					return;
 				}
 
@@ -404,6 +413,7 @@ const App = (() => {
 					(value < 1000 || value > 3600000)
 				) {
 					showError(`Rate limit window must be between 1000ms and 3600000ms`);
+					hasValidationError = true;
 					return;
 				}
 
@@ -413,6 +423,7 @@ const App = (() => {
 					(value < 1 || value > 10000)
 				) {
 					showError(`Rate limit max must be between 1 and 10000`);
+					hasValidationError = true;
 					return;
 				}
 			} else if (input.type === "checkbox") {
@@ -421,6 +432,11 @@ const App = (() => {
 
 			updates[key] = value;
 		});
+
+		// Stop if validation error occurred
+		if (hasValidationError) {
+			return;
+		}
 
 		const result = await ConfigModule.updateConfig(updates);
 

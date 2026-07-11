@@ -30,6 +30,7 @@ delete require.cache[require.resolve("../../src/middleware/authMiddleware")];
 const request = require("supertest");
 const app = require("../../src/app");
 const authService = require("../../src/services/authService");
+const csvService = require("../../src/services/csvService");
 
 // Ensure lists directory exists
 if (!fs.existsSync(TEST_LISTS_DIR)) {
@@ -49,7 +50,7 @@ const regularUser = {
 	email: "regularuser@example.com",
 };
 
-describe.skip("Developer Endpoints", () => {
+describe("Developer Endpoints", () => {
 	let developerToken;
 	let regularToken;
 
@@ -64,6 +65,33 @@ describe.skip("Developer Endpoints", () => {
 			testUser.email
 		);
 		developerToken = devReg.token;
+
+		// Set is_developer=true for test developer user by updating CSV
+		// Read the users CSV
+		const usersData = await csvService.readCSV(TEST_USERS_FILE);
+
+		// Find and update the test developer user
+		const updatedUsersData = usersData.map((user) => {
+			if (user.username === testUser.username) {
+				return { ...user, is_developer: "true" };
+			}
+			return user;
+		});
+
+		// Write back to CSV (using writeCSVSync for testing)
+		const header = [
+			"user_id",
+			"username",
+			"email",
+			"password_hash",
+			"is_admin",
+			"is_developer",
+		];
+		const csv = [
+			header.join(","),
+			...updatedUsersData.map((user) => header.map((field) => user[field] || "").join(",")),
+		].join("\n");
+		fs.writeFileSync(TEST_USERS_FILE, csv);
 
 		const regReg = await authService.registerUser(
 			regularUser.username,

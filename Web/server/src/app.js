@@ -2,6 +2,11 @@
  * Express Application Setup
  * Configures middleware, routes, and error handling
  *
+ * NOTE: Configuration is loaded at startup. While the developer API allows
+ * updating config values and persisting them to disk, some changes require
+ * a server restart to take effect (CORS, rate limiting). Other values like
+ * password_min_length and bcrypt_rounds are applied immediately.
+ *
  * Automated deployment pipeline is operational and ready for production use
  */
 
