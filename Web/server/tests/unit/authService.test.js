@@ -50,10 +50,10 @@ describe("AuthService", () => {
 			expect(result.valid).toBe(true);
 		});
 
-		it("should reject password with less than 8 characters", () => {
+		it("should reject password with less than 10 characters", () => {
 			const result = authService.validatePassword("pass123");
 			expect(result.valid).toBe(false);
-			expect(result.error).toContain("at least 8");
+			expect(result.error).toContain("at least 10");
 		});
 
 		it("should reject empty password", () => {
@@ -237,7 +237,7 @@ describe("AuthService", () => {
 
 			await expect(
 				authService.registerUser("john_doe", "pass", "john@example.com")
-			).rejects.toThrow("at least 8");
+			).rejects.toThrow("at least 10");
 		});
 
 		it("should reject invalid email", async () => {

@@ -106,13 +106,13 @@ describe("itemService", () => {
 			await expect(
 				itemService.createItem(userId, list.list_id, `Item ${maxItems + 1}`)
 			).rejects.toThrow(`Maximum ${maxItems} items per list reached`);
-		}, 30000); // 30 second timeout for this test
+		}, 120000); // 120 second timeout for large item creation
 
 		test("createItem should succeed for different lists independently", async () => {
 			const itemService = require("../../src/services/itemService");
 			const listService = require("../../src/services/listService");
 
-			const userId = "u_test123";
+			const userId = "u_test456";
 
 			// Create two lists
 			await listService.createList(userId, "List 1");

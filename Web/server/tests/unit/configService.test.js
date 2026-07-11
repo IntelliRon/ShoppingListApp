@@ -25,13 +25,13 @@ const mockConfig = {
 	},
 	auth: {
 		bcrypt_rounds: 10,
-		password_min_length: 8,
+		password_min_length: 10,
 		session_expiry_days: 30,
 		session_rotation_days: 7,
 		jwt_secret: "your-secret-key-change-in-production",
 	},
 	limits: {
-		max_items_per_list: 1000,
+		max_items_per_list: 2000,
 		max_sections_per_list: 50,
 		max_lists_per_user: 100,
 		max_username_length: 32,
