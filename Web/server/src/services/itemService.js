@@ -203,11 +203,20 @@ async function createItem(userId, listId, itemName, sectionId = null) {
  * @throws {Error} If item not found or validation fails
  */
 async function updateItem(userId, listId, itemId, updates = {}) {
+	// Validate item_name if provided - fail if invalid rather than silently ignoring
+	if (updates.item_name !== undefined) {
+		if (typeof updates.item_name !== "string" || updates.item_name.trim().length === 0) {
+			throw new Error("Item name must be a non-empty string");
+		}
+		if (updates.item_name.trim().length > config.limits.max_item_name_length) {
+			throw new Error(
+				`Item name must be ${config.limits.max_item_name_length} characters or less`
+			);
+		}
+	}
+
 	// Validate that at least one update parameter is provided
-	const hasItemName =
-		updates.item_name &&
-		typeof updates.item_name === "string" &&
-		updates.item_name.trim().length > 0;
+	const hasItemName = updates.item_name !== undefined && updates.item_name.trim().length > 0;
 	const hasSectionId = updates.section_id !== undefined;
 	const hasIsCompleted = updates.is_completed !== undefined;
 
@@ -215,7 +224,7 @@ async function updateItem(userId, listId, itemId, updates = {}) {
 		throw new Error("At least one of item_name, section_id, or is_completed must be provided");
 	}
 
-	// Validate item name if provided
+	// Validate item name max length (already validated above)
 	if (hasItemName && updates.item_name.trim().length > config.limits.max_item_name_length) {
 		throw new Error(
 			`Item name must be ${config.limits.max_item_name_length} characters or less`

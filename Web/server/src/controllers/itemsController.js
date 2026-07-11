@@ -176,6 +176,7 @@ async function updateItem(req, res) {
 		// Handle validation errors (400)
 		if (
 			error.message.includes("Item name") ||
+			error.message.includes("Section not found") ||
 			error.message.includes("maximum") ||
 			error.message.includes("must be") ||
 			error.message.includes("required")

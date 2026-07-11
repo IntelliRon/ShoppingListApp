@@ -5,6 +5,7 @@
  */
 
 const itemService = require("./itemService");
+const listService = require("./listService");
 
 /**
  * Sync items from client with server items
@@ -18,13 +19,10 @@ const itemService = require("./itemService");
 // eslint-disable-next-line no-unused-vars
 async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 	try {
-		// Verify list exists
-		try {
-			await itemService.getListItems(userId, listId);
-		} catch (error) {
-			if (error.message.includes("not found")) {
-				throw new Error("List not found");
-			}
+		// Verify list exists using listService.getList()
+		const list = await listService.getList(userId, listId);
+		if (!list) {
+			throw new Error("List not found");
 		}
 
 		// Get server items for this list

@@ -55,6 +55,22 @@ describe("Items API", () => {
 
 		authToken = registerRes.body.data.token;
 		userId = registerRes.body.data.user_id;
+
+		// Create a test list with explicit setup in outer beforeAll
+		const listRes = await request(app)
+			.post("/api/v1/lists")
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ list_name: "Test List" });
+
+		listId = listRes.body.data.list_id;
+
+		// Create a test section
+		const sectionRes = await request(app)
+			.post(`/api/v1/lists/${listId}/sections`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ section_name: "Test Section" });
+
+		sectionId = sectionRes.body.data.section_id;
 	});
 
 	afterAll(() => {
@@ -64,25 +80,10 @@ describe("Items API", () => {
 	});
 
 	describe("GET /lists/:list_id/items", () => {
-		beforeAll(async () => {
-			// Create a test list
-			const listRes = await request(app)
-				.post("/api/v1/lists")
-				.set("Authorization", `Bearer ${authToken}`)
-				.send({ list_name: "Test List" });
-
-			listId = listRes.body.data.list_id;
-
-			// Create a test section
-			const sectionRes = await request(app)
-				.post(`/api/v1/lists/${listId}/sections`)
-				.set("Authorization", `Bearer ${authToken}`)
-				.send({ section_name: "Test Section" });
-
-			sectionId = sectionRes.body.data.section_id;
-		});
-
 		it("should return empty items array for a new list", async () => {
+			// Verify listId is available (setup in outer beforeAll)
+			expect(listId).toBeDefined();
+
 			const res = await request(app)
 				.get(`/api/v1/lists/${listId}/items`)
 				.set("Authorization", `Bearer ${authToken}`);
@@ -96,6 +97,9 @@ describe("Items API", () => {
 
 	describe("POST /lists/:list_id/items", () => {
 		it("should create a new item with section", async () => {
+			// Verify listId and sectionId are available from outer beforeAll setup
+			expect(listId).toBeDefined();
+			expect(sectionId).toBeDefined();
 			const res = await request(app)
 				.post(`/api/v1/lists/${listId}/items`)
 				.set("Authorization", `Bearer ${authToken}`)

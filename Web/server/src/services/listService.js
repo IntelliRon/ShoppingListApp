@@ -219,14 +219,14 @@ async function deleteList(userId, listId) {
 		const listPath = getListsFilePath(userId);
 		const sectionsPath = getSectionsFilePath(userId);
 
-		// Delete the list
-		await csvService.deleteRecords(listPath, (record) => record.list_id === listId);
+		// Delete items FIRST to prevent orphaned items if list deletion succeeds but items fail
+		await itemService.deleteListItems(userId, listId);
 
 		// Delete all sections in this list
 		await csvService.deleteRecords(sectionsPath, (record) => record.list_id === listId);
 
-		// Delete all items in this list
-		await itemService.deleteListItems(userId, listId);
+		// Delete the list last
+		await csvService.deleteRecords(listPath, (record) => record.list_id === listId);
 
 		return { success: true };
 	} catch (error) {
@@ -536,11 +536,11 @@ async function deleteSection(userId, listId, sectionId) {
 
 		const sectionsPath = getSectionsFilePath(userId);
 
-		// Delete the section
-		await csvService.deleteRecords(sectionsPath, (record) => record.section_id === sectionId);
-
-		// Delete all items in this section
+		// Delete all items in this section FIRST to prevent orphaned items
 		await itemService.deleteSectionItems(userId, listId, sectionId);
+
+		// Delete the section last
+		await csvService.deleteRecords(sectionsPath, (record) => record.section_id === sectionId);
 
 		return { success: true };
 	} catch (error) {
