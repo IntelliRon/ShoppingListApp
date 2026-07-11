@@ -39,5 +39,22 @@
 	"logging": {
 		"level": "info",
 		"format": "json"
-	}
+	},
+	"server.port": 3000,
+	"server.env": "development",
+	"auth.bcrypt_rounds": 10,
+	"auth.password_min_length": 8,
+	"auth.session_expiry_days": 30,
+	"auth.session_rotation_days": 7,
+	"limits.max_items_per_list": 1000,
+	"limits.max_sections_per_list": 50,
+	"limits.max_lists_per_user": 100,
+	"limits.max_username_length": 32,
+	"limits.max_list_name_length": 100,
+	"limits.max_item_name_length": 200,
+	"limits.max_section_name_length": 50,
+	"rateLimit.enabled": true,
+	"rateLimit.windowMs": 60000,
+	"rateLimit.max": 100,
+	"logging.level": "warn"
 }

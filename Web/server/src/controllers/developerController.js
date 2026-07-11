@@ -126,16 +126,81 @@ async function updateConfig(req, res) {
 			}
 
 			// Type-specific validation
-			if (key.includes("port") && !Number.isInteger(value)) {
-				return res.status(400).json({
-					success: false,
-					data: null,
-					error: {
-						code: "INVALID_VALUE_TYPE",
-						message: `Configuration value for '${key}' must be an integer`,
-					},
-					timestamp: new Date().toISOString(),
-				});
+			if (key.includes("port")) {
+				if (!Number.isInteger(value)) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_TYPE",
+							message: `Configuration value for '${key}' must be an integer`,
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+				// Validate port range
+				if (value < 1 || value > 65535) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_RANGE",
+							message: "Port must be between 1 and 65535",
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+			}
+
+			if (key.includes("bcrypt_rounds")) {
+				if (!Number.isInteger(value)) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_TYPE",
+							message: `Configuration value for '${key}' must be an integer`,
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+				// Validate bcrypt rounds range
+				if (value < 4 || value > 15) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_RANGE",
+							message: "Bcrypt rounds must be between 4 and 15",
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+			}
+
+			if (key.includes("password_min_length")) {
+				if (!Number.isInteger(value)) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_TYPE",
+							message: `Configuration value for '${key}' must be an integer`,
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+				if (value < 4 || value > 128) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_RANGE",
+							message: "Password min length must be between 4 and 128",
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
 			}
 
 			if (key.includes("enabled") && typeof value !== "boolean") {
@@ -151,16 +216,80 @@ async function updateConfig(req, res) {
 			}
 
 			// Validate numeric ranges for limits
-			if (key.startsWith("limits.") && !Number.isInteger(value)) {
-				return res.status(400).json({
-					success: false,
-					data: null,
-					error: {
-						code: "INVALID_VALUE_TYPE",
-						message: `Configuration value for '${key}' must be an integer`,
-					},
-					timestamp: new Date().toISOString(),
-				});
+			if (key.startsWith("limits.")) {
+				if (!Number.isInteger(value)) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_TYPE",
+							message: `Configuration value for '${key}' must be an integer`,
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+				if (value < 1 || value > 10000) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_RANGE",
+							message: "Configuration limits must be between 1 and 10000",
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+			}
+
+			if (key.startsWith("rateLimit.")) {
+				if (key.includes("windowMs")) {
+					if (!Number.isInteger(value)) {
+						return res.status(400).json({
+							success: false,
+							data: null,
+							error: {
+								code: "INVALID_VALUE_TYPE",
+								message: `Configuration value for '${key}' must be an integer`,
+							},
+							timestamp: new Date().toISOString(),
+						});
+					}
+					if (value < 1000 || value > 3600000) {
+						return res.status(400).json({
+							success: false,
+							data: null,
+							error: {
+								code: "INVALID_VALUE_RANGE",
+								message: "Rate limit window must be between 1000ms and 3600000ms",
+							},
+							timestamp: new Date().toISOString(),
+						});
+					}
+				}
+				if (key.includes("max")) {
+					if (!Number.isInteger(value)) {
+						return res.status(400).json({
+							success: false,
+							data: null,
+							error: {
+								code: "INVALID_VALUE_TYPE",
+								message: `Configuration value for '${key}' must be an integer`,
+							},
+							timestamp: new Date().toISOString(),
+						});
+					}
+					if (value < 1 || value > 10000) {
+						return res.status(400).json({
+							success: false,
+							data: null,
+							error: {
+								code: "INVALID_VALUE_RANGE",
+								message: "Rate limit max requests must be between 1 and 10000",
+							},
+							timestamp: new Date().toISOString(),
+						});
+					}
+				}
 			}
 		}
 

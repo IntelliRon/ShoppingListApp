@@ -237,6 +237,8 @@ async function loginUser(username, password) {
 	return {
 		user_id: user.user_id,
 		username: user.username,
+		email: user.email,
+		is_developer: user.is_developer === "true",
 		token,
 	};
 }

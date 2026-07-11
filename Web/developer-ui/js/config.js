@@ -82,7 +82,14 @@ const ConfigModule = (() => {
 		formElement.innerHTML = "";
 
 		// Helper to create form group
-		function createFormGroup(label, key, value, type = "text") {
+		function createFormGroup(
+			label,
+			key,
+			value,
+			type = "text",
+			options = null,
+			constraints = {}
+		) {
 			const group = document.createElement("div");
 			group.className = "form-group";
 
@@ -90,12 +97,45 @@ const ConfigModule = (() => {
 			labelEl.textContent = label;
 			labelEl.htmlFor = key;
 
-			const input = document.createElement("input");
-			input.type = type;
-			input.id = key;
-			input.name = key;
-			input.value = value;
-			input.dataset.configKey = key;
+			let input;
+			if (options) {
+				// Create dropdown
+				input = document.createElement("select");
+				input.id = key;
+				input.name = key;
+				input.dataset.configKey = key;
+
+				options.forEach((opt) => {
+					const option = document.createElement("option");
+					option.value = opt;
+					option.textContent = opt;
+					if (opt === value) {
+						option.selected = true;
+					}
+					input.appendChild(option);
+				});
+			} else {
+				// Create regular input
+				input = document.createElement("input");
+				input.type = type;
+				input.id = key;
+				input.name = key;
+				input.value = value;
+				input.dataset.configKey = key;
+
+				// Apply constraints for number inputs
+				if (type === "number") {
+					if (constraints.min !== undefined) {
+						input.min = constraints.min;
+					}
+					if (constraints.max !== undefined) {
+						input.max = constraints.max;
+					}
+					if (constraints.step !== undefined) {
+						input.step = constraints.step;
+					}
+				}
+			}
 
 			group.appendChild(labelEl);
 			group.appendChild(input);
@@ -112,9 +152,20 @@ const ConfigModule = (() => {
 			section.appendChild(title);
 
 			section.appendChild(
-				createFormGroup("Port", "server.port", config.server.port, "number")
+				createFormGroup("Port", "server.port", config.server.port, "number", null, {
+					min: 1,
+					max: 65535,
+					step: 1,
+				})
 			);
-			section.appendChild(createFormGroup("Environment", "server.env", config.server.env));
+			section.appendChild(
+				createFormGroup("Environment", "server.env", config.server.env, "text", [
+					"development",
+					"production",
+					"test",
+					"staging",
+				])
+			);
 
 			formElement.appendChild(section);
 		}
@@ -131,7 +182,13 @@ const ConfigModule = (() => {
 					"Bcrypt Rounds",
 					"auth.bcrypt_rounds",
 					config.auth.bcrypt_rounds,
-					"number"
+					"number",
+					null,
+					{
+						min: 4,
+						max: 15,
+						step: 1,
+					}
 				)
 			);
 			section.appendChild(
@@ -139,7 +196,13 @@ const ConfigModule = (() => {
 					"Min Password Length",
 					"auth.password_min_length",
 					config.auth.password_min_length,
-					"number"
+					"number",
+					null,
+					{
+						min: 4,
+						max: 128,
+						step: 1,
+					}
 				)
 			);
 			section.appendChild(
@@ -147,7 +210,13 @@ const ConfigModule = (() => {
 					"Session Expiry (days)",
 					"auth.session_expiry_days",
 					config.auth.session_expiry_days,
-					"number"
+					"number",
+					null,
+					{
+						min: 1,
+						max: 365,
+						step: 1,
+					}
 				)
 			);
 			section.appendChild(
@@ -155,7 +224,13 @@ const ConfigModule = (() => {
 					"Session Rotation (days)",
 					"auth.session_rotation_days",
 					config.auth.session_rotation_days,
-					"number"
+					"number",
+					null,
+					{
+						min: 1,
+						max: 365,
+						step: 1,
+					}
 				)
 			);
 
@@ -174,7 +249,13 @@ const ConfigModule = (() => {
 					"Max Items Per List",
 					"limits.max_items_per_list",
 					config.limits.max_items_per_list,
-					"number"
+					"number",
+					null,
+					{
+						min: 1,
+						max: 10000,
+						step: 1,
+					}
 				)
 			);
 			section.appendChild(
@@ -182,7 +263,13 @@ const ConfigModule = (() => {
 					"Max Sections Per List",
 					"limits.max_sections_per_list",
 					config.limits.max_sections_per_list,
-					"number"
+					"number",
+					null,
+					{
+						min: 1,
+						max: 1000,
+						step: 1,
+					}
 				)
 			);
 			section.appendChild(
@@ -190,7 +277,13 @@ const ConfigModule = (() => {
 					"Max Lists Per User",
 					"limits.max_lists_per_user",
 					config.limits.max_lists_per_user,
-					"number"
+					"number",
+					null,
+					{
+						min: 1,
+						max: 1000,
+						step: 1,
+					}
 				)
 			);
 			section.appendChild(
@@ -198,7 +291,13 @@ const ConfigModule = (() => {
 					"Max Username Length",
 					"limits.max_username_length",
 					config.limits.max_username_length,
-					"number"
+					"number",
+					null,
+					{
+						min: 3,
+						max: 255,
+						step: 1,
+					}
 				)
 			);
 			section.appendChild(
@@ -206,7 +305,13 @@ const ConfigModule = (() => {
 					"Max List Name Length",
 					"limits.max_list_name_length",
 					config.limits.max_list_name_length,
-					"number"
+					"number",
+					null,
+					{
+						min: 1,
+						max: 255,
+						step: 1,
+					}
 				)
 			);
 			section.appendChild(
@@ -214,7 +319,13 @@ const ConfigModule = (() => {
 					"Max Item Name Length",
 					"limits.max_item_name_length",
 					config.limits.max_item_name_length,
-					"number"
+					"number",
+					null,
+					{
+						min: 1,
+						max: 255,
+						step: 1,
+					}
 				)
 			);
 			section.appendChild(
@@ -222,7 +333,13 @@ const ConfigModule = (() => {
 					"Max Section Name Length",
 					"limits.max_section_name_length",
 					config.limits.max_section_name_length,
-					"number"
+					"number",
+					null,
+					{
+						min: 1,
+						max: 255,
+						step: 1,
+					}
 				)
 			);
 
@@ -257,11 +374,28 @@ const ConfigModule = (() => {
 					"Window (ms)",
 					"rateLimit.windowMs",
 					config.rateLimit.windowMs,
-					"number"
+					"number",
+					null,
+					{
+						min: 1000,
+						max: 3600000,
+						step: 1000,
+					}
 				)
 			);
 			section.appendChild(
-				createFormGroup("Max Requests", "rateLimit.max", config.rateLimit.max, "number")
+				createFormGroup(
+					"Max Requests",
+					"rateLimit.max",
+					config.rateLimit.max,
+					"number",
+					null,
+					{
+						min: 1,
+						max: 10000,
+						step: 1,
+					}
+				)
 			);
 
 			formElement.appendChild(section);
@@ -275,7 +409,12 @@ const ConfigModule = (() => {
 			section.appendChild(title);
 
 			section.appendChild(
-				createFormGroup("Log Level", "logging.level", config.logging.level)
+				createFormGroup("Log Level", "logging.level", config.logging.level, "text", [
+					"debug",
+					"info",
+					"warn",
+					"error",
+				])
 			);
 
 			formElement.appendChild(section);

@@ -32,8 +32,9 @@ const AuthModule = (() => {
 			localStorage.setItem(
 				USER_KEY,
 				JSON.stringify({
-					userId: data.data.userId,
+					userId: data.data.user_id,
 					username: data.data.username,
+					email: data.data.email,
 					is_developer: data.data.is_developer,
 				})
 			);

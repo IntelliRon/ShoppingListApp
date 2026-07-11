@@ -3,13 +3,37 @@
  * Manages page navigation, authentication, and configuration UI
  */
 
+/**
+ * Wait for required modules to be loaded
+ */
+function waitForModules() {
+	return new Promise((resolve) => {
+		if (typeof AuthModule !== "undefined" && typeof ConfigModule !== "undefined") {
+			resolve();
+			return;
+		}
+		const checkInterval = setInterval(() => {
+			if (typeof AuthModule !== "undefined" && typeof ConfigModule !== "undefined") {
+				clearInterval(checkInterval);
+				resolve();
+			}
+		}, 10);
+	});
+}
+
 const App = (() => {
 	let currentConfig = null;
+	let lastStatusReloadTime = 0;
+	const STATUS_RELOAD_COOLDOWN = 5000; // 5 seconds
+	let statusCooldownTimer = null;
 
 	/**
 	 * Initialize the application
 	 */
 	async function init() {
+		// Always attach event listeners for login form and password toggle
+		attachEventListeners();
+
 		// Check if user is authenticated
 		if (!AuthModule.isAuthenticated()) {
 			showLoginModal();
@@ -18,7 +42,6 @@ const App = (() => {
 
 		hideLoginModal();
 		updateUserInfo();
-		attachEventListeners();
 		await loadConfigPage();
 	}
 
@@ -63,6 +86,26 @@ const App = (() => {
 	}
 
 	/**
+	 * Toggle password visibility
+	 */
+	function handleTogglePassword(e) {
+		e.preventDefault();
+		const passwordInput = document.getElementById("password");
+		const iconShow = document.getElementById("icon-show");
+		const iconHide = document.getElementById("icon-hide");
+
+		if (passwordInput.type === "password") {
+			passwordInput.type = "text";
+			iconShow.classList.add("hidden");
+			iconHide.classList.remove("hidden");
+		} else {
+			passwordInput.type = "password";
+			iconShow.classList.remove("hidden");
+			iconHide.classList.add("hidden");
+		}
+	}
+
+	/**
 	 * Attach event listeners
 	 */
 	function attachEventListeners() {
@@ -72,10 +115,22 @@ const App = (() => {
 			loginForm.addEventListener("submit", handleLogin);
 		}
 
+		// Password toggle
+		const toggleBtn = document.getElementById("toggle-password");
+		if (toggleBtn) {
+			toggleBtn.addEventListener("click", handleTogglePassword);
+		}
+
 		// Logout button
 		const logoutBtn = document.getElementById("logout-btn");
 		if (logoutBtn) {
 			logoutBtn.addEventListener("click", handleLogout);
+		}
+
+		// Status reload button
+		const reloadStatusBtn = document.getElementById("reload-status-btn");
+		if (reloadStatusBtn) {
+			reloadStatusBtn.addEventListener("click", handleReloadStatus);
 		}
 
 		// Navigation links
@@ -106,23 +161,36 @@ const App = (() => {
 		const password = document.getElementById("password").value;
 		const errorDiv = document.getElementById("login-error");
 
+		// Clear previous errors
+		errorDiv.textContent = "";
+		errorDiv.style.display = "none";
+
 		if (!username || !password) {
 			errorDiv.textContent = "Please enter username and password";
+			errorDiv.style.display = "block";
 			return;
 		}
 
-		const result = await AuthModule.login(username, password);
+		try {
+			const result = await AuthModule.login(username, password);
 
-		if (!result.success) {
-			errorDiv.textContent = result.error || "Login failed";
-			return;
-		}
+			if (!result.success) {
+				errorDiv.textContent = result.error || "Login failed";
+				errorDiv.style.display = "block";
+				return;
+			}
 
-		// Check if user is developer
-		const user = AuthModule.getUser();
-		if (!user.is_developer) {
-			AuthModule.clearSession();
-			errorDiv.textContent = "Only developers can access this dashboard";
+			// Check if user is developer
+			const user = AuthModule.getUser();
+			if (!user || !user.is_developer) {
+				AuthModule.clearSession();
+				errorDiv.textContent = "Only developers can access this dashboard";
+				errorDiv.style.display = "block";
+				return;
+			}
+		} catch (err) {
+			errorDiv.textContent = "An error occurred during login. Please try again.";
+			errorDiv.style.display = "block";
 			return;
 		}
 
@@ -193,6 +261,64 @@ const App = (() => {
 	}
 
 	/**
+	 * Start cooldown timer for status reload button
+	 */
+	function startStatusCooldownTimer() {
+		const reloadBtn = document.getElementById("reload-status-btn");
+		let remainingMs = STATUS_RELOAD_COOLDOWN;
+
+		// Clear any existing timer
+		if (statusCooldownTimer) {
+			clearInterval(statusCooldownTimer);
+		}
+
+		reloadBtn.disabled = true;
+		// Show initial countdown
+		updateStatusButtonCountdown(reloadBtn, remainingMs);
+
+		statusCooldownTimer = setInterval(() => {
+			remainingMs -= 1000;
+			if (remainingMs <= 0) {
+				clearInterval(statusCooldownTimer);
+				statusCooldownTimer = null;
+				reloadBtn.disabled = false;
+				reloadBtn.textContent = "Reload Status";
+			} else {
+				updateStatusButtonCountdown(reloadBtn, remainingMs);
+			}
+		}, 1000);
+	}
+
+	/**
+	 * Update status button with countdown
+	 */
+	function updateStatusButtonCountdown(btn, remainingMs) {
+		const remainingSeconds = Math.ceil(remainingMs / 1000);
+		btn.textContent = `Wait ${remainingSeconds}s...`;
+	}
+
+	/**
+	 * Reload status page
+	 */
+	async function handleReloadStatus() {
+		const reloadBtn = document.getElementById("reload-status-btn");
+
+		// Check if button is disabled (in cooldown)
+		if (reloadBtn.disabled) {
+			return;
+		}
+
+		lastStatusReloadTime = Date.now();
+		reloadBtn.disabled = true;
+		reloadBtn.textContent = "Loading...";
+
+		await loadStatusPage();
+
+		// Start the cooldown timer
+		startStatusCooldownTimer();
+	}
+
+	/**
 	 * Load status page
 	 */
 	async function loadStatusPage() {
@@ -204,23 +330,25 @@ const App = (() => {
 			const data = await response.json();
 
 			if (data.success) {
-				statusInfo.innerHTML = `
-					<div class="status-item">
-						<strong>Status:</strong> ${data.data.status}
-					</div>
-					<div class="status-item">
-						<strong>Uptime:</strong> ${formatUptime(data.data.uptime)}
-					</div>
-					<div class="status-item">
-						<strong>Environment:</strong> ${data.data.environment}
-					</div>
-					<div class="status-item">
-						<strong>Database:</strong> ${data.data.checks.database}
-					</div>
-					<div class="status-item">
-						<strong>CSV Access:</strong> ${data.data.checks.csvAccess}
-					</div>
-				`;
+				// Clear previous content
+				statusInfo.innerHTML = "";
+
+				// Create status items using DOM methods to prevent XSS
+				const createStatusItem = (label, value) => {
+					const div = document.createElement("div");
+					div.className = "status-item";
+					const strong = document.createElement("strong");
+					strong.textContent = label + ":";
+					div.appendChild(strong);
+					div.appendChild(document.createTextNode(` ${value}`));
+					return div;
+				};
+
+				statusInfo.appendChild(createStatusItem("Status", data.data.status));
+				statusInfo.appendChild(createStatusItem("Uptime", formatUptime(data.data.uptime)));
+				statusInfo.appendChild(createStatusItem("Environment", data.data.environment));
+				statusInfo.appendChild(createStatusItem("Database", data.data.checks.database));
+				statusInfo.appendChild(createStatusItem("CSV Access", data.data.checks.csvAccess));
 			} else {
 				statusInfo.innerHTML = "<p>Server is unhealthy</p>";
 			}
@@ -235,14 +363,58 @@ const App = (() => {
 	async function handleSaveConfig() {
 		const updates = {};
 
-		// Collect all form values
+		// Collect all form values with validation
 		document.querySelectorAll("[data-config-key]").forEach((input) => {
 			const key = input.dataset.configKey;
 			let value = input.value;
 
-			// Type conversion
+			// Type conversion and validation
 			if (input.type === "number") {
 				value = parseInt(value, 10);
+
+				// Basic sanity checks (backend will do full validation)
+				if (Number.isNaN(value)) {
+					showError(`Invalid number value for ${key}`);
+					return;
+				}
+
+				if (key.includes("port") && (value < 1 || value > 65535)) {
+					showError(`Port must be between 1 and 65535`);
+					return;
+				}
+
+				if (key.includes("bcrypt_rounds") && (value < 4 || value > 15)) {
+					showError(`Bcrypt rounds must be between 4 and 15`);
+					return;
+				}
+
+				if (key.includes("password_min_length") && (value < 4 || value > 128)) {
+					showError(`Password min length must be between 4 and 128`);
+					return;
+				}
+
+				if (key.startsWith("limits.") && (value < 1 || value > 10000)) {
+					showError(`${key} must be between 1 and 10000`);
+					return;
+				}
+
+				if (
+					key.startsWith("rateLimit.") &&
+					key.includes("windowMs") &&
+					(value < 1000 || value > 3600000)
+				) {
+					showError(`Rate limit window must be between 1000ms and 3600000ms`);
+					return;
+				}
+
+				if (
+					key.startsWith("rateLimit.") &&
+					key.includes("max") &&
+					(value < 1 || value > 10000)
+				) {
+					showError(`Rate limit max must be between 1 and 10000`);
+					return;
+				}
 			} else if (input.type === "checkbox") {
 				value = input.checked;
 			}
@@ -278,19 +450,35 @@ const App = (() => {
 	}
 
 	/**
+	 * Show toast notification
+	 */
+	function showToast(message, type = "success") {
+		const container = document.getElementById("toast-container");
+		const toast = document.createElement("div");
+		toast.className = `toast ${type}`;
+		toast.textContent = message;
+
+		container.appendChild(toast);
+
+		// Auto-remove after 3 seconds
+		setTimeout(() => {
+			toast.style.animation = "slideOut 0.3s ease-out forwards";
+			setTimeout(() => toast.remove(), 300);
+		}, 3000);
+	}
+
+	/**
 	 * Show error message
 	 */
 	function showError(message) {
-		// eslint-disable-next-line no-alert
-		alert(`Error: ${message}`);
+		showToast(`Error: ${message}`, "error");
 	}
 
 	/**
 	 * Show success message
 	 */
 	function showSuccess(message) {
-		// eslint-disable-next-line no-alert
-		alert(message);
+		showToast(message, "success");
 	}
 
 	/**
@@ -309,12 +497,17 @@ const App = (() => {
 		return parts.join(" ");
 	}
 
-	// Auto-initialize when DOM is ready
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", init);
-	} else {
-		init();
+	// Auto-initialize when DOM is ready and modules are loaded
+	async function autoInit() {
+		await waitForModules();
+		if (document.readyState === "loading") {
+			document.addEventListener("DOMContentLoaded", init);
+		} else {
+			await init();
+		}
 	}
+
+	autoInit();
 
 	return {
 		init,

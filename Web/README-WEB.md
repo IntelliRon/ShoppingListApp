@@ -97,18 +97,51 @@ CSV-based persistence located in `src/db/`:
 
 ## Developer UI
 
-Web-based dashboard for configuration management.
+Web-based dashboard for configuration management and server administration.
+
+### Running the Developer Portal
+
+The Developer UI runs on a separate port (3001) from the API server (3000).
+
+**Terminal 1 - API Server:**
+
+```bash
+npm run dev    # Runs on http://localhost:3000
+```
+
+**Terminal 2 - Developer Portal:**
+
+```bash
+npm run dev:portal    # Runs on http://localhost:3001
+```
+
+Once both servers are running, access the Developer UI:
+
+- **URL:** `http://localhost:3001`
+- **Login:** Use any user account with `is_developer=true` flag
 
 ### Features
 
-- View/edit server configuration
-- Runtime config updates
-- Server status monitoring
+- **Configuration Editor** - View and modify server configuration
+- **Runtime Updates** - Apply config changes without restart
+- **Server Status** - Monitor uptime and system health
+- **Authentication** - Secure login for developers only
 
-### Access
+### Authentication
 
-```
-http://localhost:3001/developer
+Only users with `is_developer=true` can access the portal. To create a developer user:
+
+```bash
+# Via API
+curl -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "devuser",
+    "password": "SecurePassword123",
+    "email": "dev@example.com"
+  }'
+
+# Then manually set is_developer=true in db/users.csv
 ```
 
 ### Architecture
