@@ -126,8 +126,8 @@ async function syncItems(req, res) {
 		// eslint-disable-next-line no-console
 		console.error("[Sync Error]", error.message);
 
-		// Handle not found errors (list doesn't exist)
-		if (error.message.includes("not found")) {
+		// Distinguish between list-not-found (404) and other validation errors
+		if (error.message === "List not found") {
 			return res.status(404).json({
 				success: false,
 				data: null,

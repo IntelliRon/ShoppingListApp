@@ -774,6 +774,7 @@ Authorization: Bearer eyJhbGc...
 **Error Responses:**
 
 - `401 Unauthorized` - Invalid or missing token
+- `404 Not Found` - List does not exist
 - `500 Internal Server Error` - Server error
 
 ---
@@ -1016,6 +1017,11 @@ Authorization: Bearer eyJhbGc...
 - `client_items` must be an array
 - Each item must have `item_id` and `operation`
 - `operation` must be one of: create, update, delete
+- For **create** operations: `item_name` is required
+- For **update** operations: `item_name` is required
+- For **update/delete** operations: `last_modified` is required and must be a valid timestamp
+- `item_name` must be 1-200 characters (when provided)
+- `section_id` must be valid if provided
 
 **Error Responses:**
 

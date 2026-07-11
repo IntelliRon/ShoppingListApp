@@ -310,10 +310,19 @@ async function deleteSectionItems(userId, listId, sectionId) {
 	try {
 		const itemsPath = getItemsFilePath(userId);
 
-		await csvService.deleteRecords(
-			itemsPath,
+		// Check if there are items to delete before attempting write
+		const allItems = await csvService.readCSV(itemsPath);
+		const hasItems = allItems.some(
 			(record) => record.list_id === listId && record.section_id === sectionId
 		);
+
+		// Only delete if items exist (avoid creating empty file)
+		if (hasItems) {
+			await csvService.deleteRecords(
+				itemsPath,
+				(record) => record.list_id === listId && record.section_id === sectionId
+			);
+		}
 
 		return { success: true };
 	} catch (error) {
@@ -329,7 +338,14 @@ async function deleteListItems(userId, listId) {
 	try {
 		const itemsPath = getItemsFilePath(userId);
 
-		await csvService.deleteRecords(itemsPath, (record) => record.list_id === listId);
+		// Check if there are items to delete before attempting write
+		const allItems = await csvService.readCSV(itemsPath);
+		const hasItems = allItems.some((record) => record.list_id === listId);
+
+		// Only delete if items exist (avoid creating empty file)
+		if (hasItems) {
+			await csvService.deleteRecords(itemsPath, (record) => record.list_id === listId);
+		}
 
 		return { success: true };
 	} catch (error) {
