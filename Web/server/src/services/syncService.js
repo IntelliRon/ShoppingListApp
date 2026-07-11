@@ -44,7 +44,9 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 			continue;
 		}
 
-		const serverItem = serverItemsMap[clientItem.item_id];
+		// Resolve effective server ID via id_mapping (handles offline-created items in same batch)
+		const effectiveItemId = idMapping[clientItem.item_id] || clientItem.item_id;
+		const serverItem = serverItemsMap[effectiveItemId];
 		// Only read last_modified for update/delete (create operations don't require it)
 		const clientTimestamp = ["update", "delete"].includes(clientItem.operation)
 			? new Date(clientItem.last_modified).getTime()
@@ -70,6 +72,8 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 				);
 				// Track mapping from client-provided ID to server-generated ID
 				idMapping[clientItem.item_id] = createdItem.item_id;
+				// Add to serverItemsMap so subsequent ops in same batch can find it
+				serverItemsMap[createdItem.item_id] = createdItem;
 			}
 		} else if (clientItem.operation === "update") {
 			if (!serverItem) {
@@ -89,7 +93,7 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 					const updatedItem = await itemService.updateItem(
 						userId,
 						listId,
-						clientItem.item_id,
+						effectiveItemId,
 						{
 							item_name: clientItem.item_name,
 							section_id: clientItem.section_id || null,
@@ -99,7 +103,7 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 						}
 					);
 					// Update serverItemsMap with new item state after update
-					serverItemsMap[clientItem.item_id] = updatedItem;
+					serverItemsMap[effectiveItemId] = updatedItem;
 				} else {
 					// Server is newer - conflict, keep server version
 					conflicts.push({
@@ -122,9 +126,9 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 
 				if (clientTimestamp >= serverTimestamp) {
 					// Client timestamp is same or newer - safe to delete
-					await itemService.deleteItem(userId, listId, clientItem.item_id);
+					await itemService.deleteItem(userId, listId, effectiveItemId);
 					// Remove deleted item from serverItemsMap to prevent stale state
-					delete serverItemsMap[clientItem.item_id];
+					delete serverItemsMap[effectiveItemId];
 				} else {
 					// Server has newer changes - conflict, keep server version
 					conflicts.push({

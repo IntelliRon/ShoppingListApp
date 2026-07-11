@@ -294,7 +294,14 @@ async function updateItem(userId, listId, itemId, updates = {}) {
 		}
 	);
 
-	return updated.find((r) => r.item_id === itemId) || null;
+	const updatedItem = updated.find((r) => r.item_id === itemId);
+	if (!updatedItem) {
+		throw new Error(
+			"Failed to update item - post-update lookup failed (concurrent delete or write conflict)"
+		);
+	}
+
+	return updatedItem;
 }
 
 /**
