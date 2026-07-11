@@ -48,17 +48,26 @@ function getNextSortOrder(sections, listId) {
 }
 
 /**
+ * Get user's shopping lists directory path
+ */
+function getShoppingListsDir() {
+	return process.env.TEST_DB_PATH
+		? path.join(dbPath, "shopping-lists")
+		: path.join(__dirname, "..", "..", config.database.shopping_lists_dir);
+}
+
+/**
  * Get user's lists CSV file path
  */
 function getListsFilePath(userId) {
-	return path.join(dbPath, "shopping-lists", `${userId}.csv`);
+	return path.join(getShoppingListsDir(), `${userId}.csv`);
 }
 
 /**
  * Get user's sections CSV file path
  */
 function getSectionsFilePath(userId) {
-	return path.join(dbPath, "shopping-lists", `${userId}_sections.csv`);
+	return path.join(getShoppingListsDir(), `${userId}_sections.csv`);
 }
 
 /**
@@ -296,8 +305,9 @@ async function getSection(userId, listId, sectionId) {
 }
 
 /**
- * Reorder sections when a section's sort_order changes
- * Shifts adjacent sections to maintain sequential ordering
+ * Reorder sections when a section's sort_order changes.
+ * Shifts adjacent sections between the old and new positions to preserve relative ordering.
+ * Note: This does not clamp or normalize sort_order values; large sort_order values can create gaps.
  * @param {array} sections - All sections for the list
  * @param {string} sectionId - Section being moved
  * @param {number} newSortOrder - New sort order for the section

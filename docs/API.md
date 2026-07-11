@@ -335,6 +335,7 @@ Get all shopping lists for authenticated user.
 			"list_name": "Grocery Shopping",
 			"created_at": "2026-01-20T10:00:00Z",
 			"last_modified": "2026-07-04T09:30:00Z",
+			"version": "1",
 			"item_count": 0,
 			"completed_count": 0
 		}
@@ -533,6 +534,7 @@ Get all sections for a specific list.
 			"list_id": "l001",
 			"section_name": "Produce",
 			"sort_order": 1,
+			"version": "1",
 			"created_at": "2026-01-20T10:00:00Z",
 			"last_modified": "2026-01-20T10:00:00Z"
 		}

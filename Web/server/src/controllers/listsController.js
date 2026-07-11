@@ -394,7 +394,7 @@ async function createSection(req, res) {
 		}
 
 		// Handle not found errors
-		if (error.message.includes("not found")) {
+		if (/not found/i.test(error.message)) {
 			return res.status(404).json({
 				success: false,
 				data: null,
@@ -538,7 +538,7 @@ async function updateSection(req, res) {
 		}
 
 		// Handle not found errors
-		if (error.message.includes("not found")) {
+		if (/not found/i.test(error.message)) {
 			return res.status(404).json({
 				success: false,
 				data: null,
