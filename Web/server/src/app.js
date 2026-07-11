@@ -18,6 +18,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors(config.server.cors));
 
 // Rate Limiting (per-IP; disabled in test environment)
+if (process.env.NODE_ENV !== "test") {
+	const limiter = rateLimit({
 		windowMs: config.rateLimit.windowMs,
 		max: config.rateLimit.max,
 		skipSuccessfulRequests: config.rateLimit.skipSuccessfulRequests,
