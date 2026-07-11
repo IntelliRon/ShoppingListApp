@@ -125,7 +125,10 @@ function set(key, value) {
 
 /**
  * Update multiple configuration values
- * Accepts an object with keys to update
+ * Accepts both nested objects and flat dot-notation keys
+ * Examples:
+ *   - { server: { port: 5000 } } (nested objects)
+ *   - { "server.port": 5000 } (flat keys with dots)
  * Persists changes to defaults.json
  */
 function update(updates) {
@@ -133,17 +136,40 @@ function update(updates) {
 		loadConfig();
 	}
 
-	// Apply updates (flat keys only for safety)
+	// Apply updates
 	for (const [key, value] of Object.entries(updates)) {
+		// Check if value is a nested object (not array, not null)
 		if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-			// For nested objects, merge with existing values
+			// Nested object: { server: { port: 5000 } }
 			if (key in config && typeof config[key] === "object") {
+				// Merge with existing nested values
 				config[key] = { ...config[key], ...value };
 			} else {
+				// Create new nested object
 				config[key] = value;
 			}
 		} else {
-			config[key] = value;
+			// Primitive value: could be flat key like "server.port" or top-level key
+			if (key.includes(".")) {
+				// Flat key with dot notation: "server.port": 5000
+				const keys = key.split(".");
+				let obj = config;
+
+				// Navigate to parent object, creating nested objects as needed
+				for (let i = 0; i < keys.length - 1; i++) {
+					const k = keys[i];
+					if (!(k in obj) || typeof obj[k] !== "object") {
+						obj[k] = {};
+					}
+					obj = obj[k];
+				}
+
+				// Set the value at the final key
+				obj[keys[keys.length - 1]] = value;
+			} else {
+				// Top-level key (no dots)
+				config[key] = value;
+			}
 		}
 	}
 
