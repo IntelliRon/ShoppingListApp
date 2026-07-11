@@ -152,15 +152,17 @@ describe("ConfigService", () => {
 	});
 
 	describe("reload()", () => {
-		it("should reload configuration from internal state", () => {
+		beforeEach(() => {
 			configService._setConfig(JSON.parse(JSON.stringify(mockConfig)));
+		});
+
+		it("should reload configuration from internal state", () => {
 			const reloadedConfig = configService.reload();
 
 			expect(reloadedConfig).toEqual(mockConfig);
 		});
 
 		it("should reset to original config after changes", () => {
-			configService._setConfig(JSON.parse(JSON.stringify(mockConfig)));
 			configService.set("server.port", 9999);
 
 			expect(configService.get("server.port")).toBe(9999);

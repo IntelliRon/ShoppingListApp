@@ -41,8 +41,8 @@ app.use((err, req, res, _next) => {
 	});
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server - bind to localhost only for security
+app.listen(PORT, "localhost", () => {
 	// eslint-disable-next-line no-console
 	console.log(`[Developer Portal] Running on http://localhost:${PORT}`);
 });

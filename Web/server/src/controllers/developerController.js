@@ -75,7 +75,7 @@ async function updateConfig(req, res) {
 			});
 		}
 
-		// Whitelist of updatable configuration keys
+		// Whitelist of updatable configuration keys (17 safe keys)
 		const allowedKeys = [
 			"server.port",
 			"server.env",
