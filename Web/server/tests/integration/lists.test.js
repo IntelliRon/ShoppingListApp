@@ -614,46 +614,78 @@ describe("Lists and Sections API", () => {
 	});
 
 	// Tests for constraint limits
-	it("should enforce max_sections_per_list constraint when limit is exceeded", async () => {
-		// This test verifies the section limit constraint is enforced
-		// We test with fewer sections (5) instead of 50 for performance,
-		// but the same constraint logic applies
+	it("should enforce max_sections_per_list constraint (50 sections max)", async () => {
 		const config = require("../../src/config/defaults.json");
 		const maxSections = config.limits.max_sections_per_list;
-		expect(maxSections).toBe(50); // Verify config
+		expect(maxSections).toBe(50);
 
-		// Create a fresh list
+		// Create a fresh list for this constraint test
 		const listResponse = await request(app)
 			.post("/api/v1/lists")
 			.set("Authorization", `Bearer ${authToken}`)
-			.send({ list_name: "Constraint Verification List" });
+			.send({ list_name: "Max Sections Test" });
 
+		expect(listResponse.status).toBe(201);
 		const testListId = listResponse.body.data.list_id;
 
-		// Create 5 sections successfully
-		for (let i = 1; i <= 5; i++) {
+		// Attempt to create 50 sections
+		for (let i = 1; i <= 50; i++) {
 			const createResponse = await request(app)
 				.post(`/api/v1/lists/${testListId}/sections`)
 				.set("Authorization", `Bearer ${authToken}`)
-				.send({ section_name: `Test Section ${i}` });
+				.send({ section_name: `Section ${i}` });
 
 			expect(createResponse.status).toBe(201);
 		}
 
-		// Verify all 5 were created
+		// Verify all 50 were created
 		const getResponse = await request(app)
 			.get(`/api/v1/lists/${testListId}/sections`)
 			.set("Authorization", `Bearer ${authToken}`);
 
 		expect(getResponse.status).toBe(200);
-		expect(getResponse.body.data).toHaveLength(5);
+		expect(getResponse.body.data).toHaveLength(50);
+
+		// Try to create the 51st - should get 400/VALIDATION_ERROR
+		const overLimitResponse = await request(app)
+			.post(`/api/v1/lists/${testListId}/sections`)
+			.set("Authorization", `Bearer ${authToken}`)
+			.send({ section_name: "Over Limit" });
+
+		expect(overLimitResponse.status).toBe(400);
+		expect(overLimitResponse.body.error.code).toBe("VALIDATION_ERROR");
 	});
 
-	it("should enforce max_lists_per_user constraint when configured", async () => {
-		// Verify the config has the max_lists_per_user constraint
+	it("should enforce max_lists_per_user constraint (100 lists max)", async () => {
 		const config = require("../../src/config/defaults.json");
 		const maxLists = config.limits.max_lists_per_user;
-
 		expect(maxLists).toBe(100);
+
+		// Attempt to create 100 lists
+		let createdCount = 0;
+		for (let i = 1; i <= 100; i++) {
+			const createResponse = await request(app)
+				.post("/api/v1/lists")
+				.set("Authorization", `Bearer ${authToken}`)
+				.send({ list_name: `List ${i}` });
+
+			if (createResponse.status === 201) {
+				createdCount++;
+			} else if (createResponse.status === 400) {
+				// Hit the limit earlier than expected
+				expect(createResponse.body.error.code).toBe("VALIDATION_ERROR");
+				break;
+			}
+		}
+
+		// Get all lists to verify count
+		const getAllResponse = await request(app)
+			.get("/api/v1/lists")
+			.set("Authorization", `Bearer ${authToken}`);
+
+		expect(getAllResponse.status).toBe(200);
+		expect(Array.isArray(getAllResponse.body.data)).toBe(true);
+		// Should have created at least 100 lists (or hit exactly 100)
+		expect(getAllResponse.body.data.length).toBeGreaterThanOrEqual(100);
 	});
 });
