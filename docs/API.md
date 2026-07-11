@@ -27,6 +27,10 @@ All responses follow a standard format with `success`, `data`, and `timestamp` f
     - [DELETE /lists/{list_id}/sections/{section_id}](#delete-listslist_idsectionssection_id)
 - [Items Endpoints (Phase 3)](#items-endpoints-phase-3)
 - [Sync Endpoints (Phase 3)](#sync-endpoints-phase-3)
+- [Developer Endpoints (Phase 4)](#developer-endpoints-phase-4)
+    - [GET /developer/config](#get-developerconfig)
+    - [POST /developer/config](#post-developerconfig)
+    - [POST /developer/config/reload](#post-developerconfigreload)
 - [Error Codes](#error-codes)
 - [Authentication](#authentication)
 - [Rate Limiting](#rate-limiting)
@@ -1038,6 +1042,241 @@ Authorization: Bearer eyJhbGc...
 - Returning all server items allows client to rebuild full state
 - Operations not included in the sync are considered unchanged on client
 - **ID Mapping (Phase 3.1 enhancement):** The `id_mapping` field tracks client-provided `item_id` → server-generated `item_id` for created items. Clients should use this to update local records: if client sent `{"item_id": "i999", "operation": "create", ...}` and receives `id_mapping: {"i999": "i003"}`, the client should replace all references to `i999` with `i003` in their local database to stay in sync with the server.
+
+---
+
+## Developer Endpoints (Phase 4)
+
+### GET /developer/config
+
+Get current server configuration. **Requires developer role.**
+
+**Request:**
+
+- Method: `GET`
+- Headers: `Authorization: Bearer {token}`
+- Body: None
+
+**Response Codes:**
+
+- `200 OK` - Configuration retrieved successfully
+- `401 Unauthorized` - Invalid or missing token
+- `403 Forbidden` - User does not have developer role
+- `500 Internal Server Error` - Server error
+
+**Response (200):**
+
+```json
+{
+	"success": true,
+	"data": {
+		"server": {
+			"port": 3000,
+			"env": "development"
+		},
+		"auth": {
+			"bcrypt_rounds": 10,
+			"password_min_length": 8,
+			"session_expiry_days": 30,
+			"session_rotation_days": 7
+		},
+		"limits": {
+			"max_items_per_list": 1000,
+			"max_sections_per_list": 50,
+			"max_lists_per_user": 100,
+			"max_username_length": 32,
+			"max_list_name_length": 100,
+			"max_item_name_length": 200,
+			"max_section_name_length": 50
+		},
+		"rateLimit": {
+			"enabled": true,
+			"windowMs": 60000,
+			"max": 100
+		},
+		"logging": {
+			"level": "info"
+		}
+	},
+	"timestamp": "2026-07-11T10:00:00Z"
+}
+```
+
+**Response (403):**
+
+```json
+{
+	"success": false,
+	"data": null,
+	"error": {
+		"code": "FORBIDDEN",
+		"message": "Developer role required"
+	},
+	"timestamp": "2026-07-11T10:00:00Z"
+}
+```
+
+### POST /developer/config
+
+Update server configuration values. **Requires developer role.**
+
+**Request:**
+
+- Method: `POST`
+- Headers: `Authorization: Bearer {token}`, `Content-Type: application/json`
+- Body:
+
+```json
+{
+	"updates": {
+		"server.port": 4000,
+		"auth.password_min_length": 10,
+		"limits.max_items_per_list": 2000
+	}
+}
+```
+
+**Allowed Configuration Keys:**
+
+Safe configuration keys that can be updated:
+
+- `server.port` - Server port (integer)
+- `server.env` - Environment (string)
+- `auth.bcrypt_rounds` - Bcrypt rounds for hashing (integer)
+- `auth.password_min_length` - Minimum password length (integer)
+- `auth.session_expiry_days` - Session expiration days (integer)
+- `auth.session_rotation_days` - Session rotation days (integer)
+- `limits.*` - All limit values (integers)
+- `rateLimit.enabled` - Enable rate limiting (boolean)
+- `rateLimit.windowMs` - Rate limit window (integer)
+- `rateLimit.max` - Max requests per window (integer)
+- `logging.level` - Log level (string)
+
+**Protected Keys (Cannot be Updated):**
+
+- `database.*` - Database configuration
+- `auth.jwt_secret` - JWT secret key
+
+**Response Codes:**
+
+- `200 OK` - Configuration updated successfully
+- `400 Bad Request` - Invalid key or value type
+- `401 Unauthorized` - Invalid or missing token
+- `403 Forbidden` - User does not have developer role
+- `500 Internal Server Error` - Server error
+
+**Response (200):**
+
+```json
+{
+	"success": true,
+	"data": {
+		"updated": true,
+		"config": {
+			"server": {
+				"port": 4000,
+				"env": "development"
+			},
+			"auth": {
+				"bcrypt_rounds": 10,
+				"password_min_length": 10,
+				"session_expiry_days": 30,
+				"session_rotation_days": 7
+			},
+			"limits": {
+				"max_items_per_list": 2000,
+				"max_sections_per_list": 50,
+				"max_lists_per_user": 100,
+				"max_username_length": 32,
+				"max_list_name_length": 100,
+				"max_item_name_length": 200,
+				"max_section_name_length": 50
+			},
+			"rateLimit": {
+				"enabled": true,
+				"windowMs": 60000,
+				"max": 100
+			},
+			"logging": {
+				"level": "info"
+			}
+		}
+	},
+	"timestamp": "2026-07-11T10:00:00Z"
+}
+```
+
+**Response (400 - Invalid Key):**
+
+```json
+{
+	"success": false,
+	"data": null,
+	"error": {
+		"code": "INVALID_CONFIG_KEY",
+		"message": "Configuration key 'database.path' cannot be updated"
+	},
+	"timestamp": "2026-07-11T10:00:00Z"
+}
+```
+
+### POST /developer/config/reload
+
+Reload configuration from disk. **Requires developer role.**
+
+**Request:**
+
+- Method: `POST`
+- Headers: `Authorization: Bearer {token}`
+- Body: None
+
+**Response Codes:**
+
+- `200 OK` - Configuration reloaded successfully
+- `401 Unauthorized` - Invalid or missing token
+- `403 Forbidden` - User does not have developer role
+- `500 Internal Server Error` - Server error
+
+**Response (200):**
+
+```json
+{
+	"success": true,
+	"data": {
+		"reloaded": true,
+		"config": {
+			"server": {
+				"port": 3000,
+				"env": "development"
+			},
+			"auth": {
+				"bcrypt_rounds": 10,
+				"password_min_length": 8,
+				"session_expiry_days": 30,
+				"session_rotation_days": 7
+			},
+			"limits": {
+				"max_items_per_list": 1000,
+				"max_sections_per_list": 50,
+				"max_lists_per_user": 100,
+				"max_username_length": 32,
+				"max_list_name_length": 100,
+				"max_item_name_length": 200,
+				"max_section_name_length": 50
+			},
+			"rateLimit": {
+				"enabled": true,
+				"windowMs": 60000,
+				"max": 100
+			},
+			"logging": {
+				"level": "info"
+			}
+		}
+	},
+	"timestamp": "2026-07-11T10:00:00Z"
+}
+```
 
 ---
 

@@ -1,0 +1,198 @@
+/**
+ * Configuration Service
+ * Manages application configuration loading, retrieval, and runtime updates
+ * Persists configuration changes to defaults.json
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+// Configuration state (loaded on startup)
+let config = null;
+
+/**
+ * Load configuration from defaults.json
+ * Supports environment-specific overrides (defaults.{NODE_ENV}.json)
+ */
+function loadConfig() {
+	try {
+		const configDir = path.join(__dirname, "..", "config");
+		const env = process.env.NODE_ENV || "development";
+
+		// Try environment-specific config first
+		const envConfigPath = path.join(configDir, `defaults.${env}.json`);
+		if (fs.existsSync(envConfigPath)) {
+			const envConfig = JSON.parse(fs.readFileSync(envConfigPath, "utf8"));
+			config = deepMerge(
+				JSON.parse(fs.readFileSync(path.join(configDir, "defaults.json"), "utf8")),
+				envConfig
+			);
+			// eslint-disable-next-line no-console
+			console.log(`[ConfigService] Loaded configuration with ${env} overrides`);
+		} else {
+			// Load base configuration
+			config = JSON.parse(fs.readFileSync(path.join(configDir, "defaults.json"), "utf8"));
+			// eslint-disable-next-line no-console
+			console.log("[ConfigService] Loaded default configuration");
+		}
+
+		return config;
+	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error("[ConfigService] Failed to load configuration:", error.message);
+		throw new Error(`Configuration load failed: ${error.message}`);
+	}
+}
+
+/**
+ * Deep merge objects (for environment overrides)
+ */
+function deepMerge(target, source) {
+	const result = { ...target };
+
+	for (const key in source) {
+		if (Object.prototype.hasOwnProperty.call(source, key)) {
+			if (
+				typeof source[key] === "object" &&
+				source[key] !== null &&
+				!Array.isArray(source[key])
+			) {
+				result[key] = deepMerge(result[key] || {}, source[key]);
+			} else {
+				result[key] = source[key];
+			}
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Get configuration value
+ * Supports nested keys using dot notation (e.g., "limits.max_items_per_list")
+ */
+function get(key) {
+	if (!config) {
+		loadConfig();
+	}
+
+	if (!key) {
+		return config;
+	}
+
+	const keys = key.split(".");
+	let value = config;
+
+	for (const k of keys) {
+		if (value && typeof value === "object" && k in value) {
+			value = value[k];
+		} else {
+			return undefined;
+		}
+	}
+
+	return value;
+}
+
+/**
+ * Update configuration value
+ * Supports nested keys using dot notation
+ * Persists changes to defaults.json
+ */
+function set(key, value) {
+	if (!config) {
+		loadConfig();
+	}
+
+	const keys = key.split(".");
+	let obj = config;
+
+	// Navigate to parent object
+	for (let i = 0; i < keys.length - 1; i++) {
+		const k = keys[i];
+		if (!(k in obj)) {
+			obj[k] = {};
+		}
+		obj = obj[k];
+	}
+
+	// Set the value
+	obj[keys[keys.length - 1]] = value;
+
+	// Persist to file
+	_persistConfig();
+}
+
+/**
+ * Update multiple configuration values
+ * Accepts an object with keys to update
+ * Persists changes to defaults.json
+ */
+function update(updates) {
+	if (!config) {
+		loadConfig();
+	}
+
+	// Apply updates (flat keys only for safety)
+	for (const [key, value] of Object.entries(updates)) {
+		if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+			// For nested objects, merge with existing values
+			if (key in config && typeof config[key] === "object") {
+				config[key] = { ...config[key], ...value };
+			} else {
+				config[key] = value;
+			}
+		} else {
+			config[key] = value;
+		}
+	}
+
+	// Persist to file
+	_persistConfig();
+
+	return config;
+}
+
+/**
+ * Reload configuration from disk
+ * Useful for refreshing config after external changes
+ */
+function reload() {
+	config = null;
+	loadConfig();
+	// eslint-disable-next-line no-console
+	console.log("[ConfigService] Configuration reloaded from disk");
+	return config;
+}
+
+/**
+ * Persist configuration to defaults.json
+ * Private function used internally
+ */
+function _persistConfig() {
+	try {
+		const configPath = path.join(__dirname, "..", "config", "defaults.json");
+		fs.writeFileSync(configPath, JSON.stringify(config, null, "\t"), "utf8");
+		// eslint-disable-next-line no-console
+		console.log("[ConfigService] Configuration persisted to defaults.json");
+	} catch (error) {
+		// eslint-disable-next-line no-console
+		console.error("[ConfigService] Failed to persist configuration:", error.message);
+		throw new Error(`Configuration persist failed: ${error.message}`);
+	}
+}
+
+// Initialize config on module load
+loadConfig();
+
+module.exports = {
+	get,
+	set,
+	update,
+	reload,
+	// For testing purposes
+	_loadConfig: loadConfig,
+	_setConfig: (newConfig) => {
+		config = newConfig;
+	},
+};

@@ -1,7 +1,7 @@
 /**
  * Express Application Setup
  * Configures middleware, routes, and error handling
- * 
+ *
  * Automated deployment pipeline is operational and ready for production use
  */
 
@@ -92,6 +92,7 @@ app.get("/api/v1/health", (req, res) => {
 app.use("/api/v1/auth", require("./routes/auth"));
 app.use("/api/v1/lists", require("./routes/lists"));
 app.use("/api/v1/sync", require("./routes/sync"));
+app.use("/api/v1/developer", require("./routes/developer"));
 
 // 404 Handler
 app.use((req, res) => {
