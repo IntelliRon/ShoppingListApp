@@ -77,6 +77,7 @@ async function createList(req, res) {
 				list_name: newList.list_name,
 				created_at: newList.created_at,
 				last_modified: newList.last_modified,
+				version: String(newList.version),
 			},
 			timestamp: new Date().toISOString(),
 		});
@@ -365,6 +366,7 @@ async function createSection(req, res) {
 				sort_order: parseInt(newSection.sort_order, 10),
 				created_at: newSection.created_at,
 				last_modified: newSection.last_modified,
+				version: String(newSection.version),
 			},
 			timestamp: new Date().toISOString(),
 		});

@@ -137,7 +137,8 @@ Register a new user account.
 **Response Codes:**
 
 - `201 Created` - User successfully registered
-- `400 Bad Request` - Validation error (missing field, invalid format, duplicate username/email)
+- `400 Bad Request` - Validation error (missing field, invalid format)
+- `409 Conflict` - Username or email already exists
 - `500 Internal Server Error` - Server error
 
 **Response (201):**
@@ -149,20 +150,21 @@ Register a new user account.
 		"user_id": "u001",
 		"username": "john_doe",
 		"email": "john@example.com",
+		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
 		"created_at": "2026-07-10T15:30:00Z"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
 }
 ```
 
-**Response (400):**
+**Response (409):**
 
 ```json
 {
 	"success": false,
 	"data": null,
 	"error": {
-		"code": "VALIDATION_ERROR",
+		"code": "CONFLICT",
 		"message": "Username already exists"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
@@ -375,7 +377,8 @@ Create a new shopping list.
 		"list_id": "l002",
 		"list_name": "Hardware Store",
 		"created_at": "2026-07-10T15:30:00Z",
-		"last_modified": "2026-07-10T15:30:00Z"
+		"last_modified": "2026-07-10T15:30:00Z",
+		"version": "1"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
 }
@@ -399,7 +402,7 @@ Create a new shopping list.
 
 ### PUT /lists/{list_id}
 
-Rename an existing shopping list.
+Rename an existing shopping list with optional optimistic locking support.
 
 **Request:**
 
@@ -410,7 +413,8 @@ Rename an existing shopping list.
 
 ```json
 {
-	"list_name": "string (1-100 characters)"
+	"list_name": "string (1-100 characters)",
+	"expected_version": "string (optional, for optimistic locking)"
 }
 ```
 
@@ -420,6 +424,7 @@ Rename an existing shopping list.
 - `400 Bad Request` - Validation error (empty name, exceeds 100 chars)
 - `401 Unauthorized` - Invalid or missing token
 - `404 Not Found` - List not found or belongs to different user
+- `409 Conflict` - Version mismatch (when expected_version is provided)
 - `500 Internal Server Error` - Server error
 
 **Response (200):**
@@ -430,7 +435,8 @@ Rename an existing shopping list.
 	"data": {
 		"list_id": "l001",
 		"list_name": "New Name",
-		"last_modified": "2026-07-10T15:30:00Z"
+		"last_modified": "2026-07-10T15:30:00Z",
+		"version": "2"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
 }
@@ -445,6 +451,20 @@ Rename an existing shopping list.
 	"error": {
 		"code": "NOT_FOUND",
 		"message": "List not found"
+	},
+	"timestamp": "2026-07-10T15:30:00Z"
+}
+```
+
+**Response (409):**
+
+```json
+{
+	"success": false,
+	"data": null,
+	"error": {
+		"code": "CONFLICT",
+		"message": "Version conflict: expected 1, but current version is 2"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
 }
@@ -559,7 +579,8 @@ Create a new section in a list.
 		"section_name": "Meat",
 		"sort_order": 3,
 		"created_at": "2026-07-10T15:30:00Z",
-		"last_modified": "2026-07-10T15:30:00Z"
+		"last_modified": "2026-07-10T15:30:00Z",
+		"version": "1"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
 }
@@ -583,7 +604,7 @@ Create a new section in a list.
 
 ### PUT /lists/{list_id}/sections/{section_id}
 
-Update a section (rename and/or reorder).
+Update a section (rename and/or reorder) with optional optimistic locking support.
 
 **Request:**
 
@@ -595,7 +616,8 @@ Update a section (rename and/or reorder).
 ```json
 {
 	"section_name": "string (1-50 characters, optional)",
-	"sort_order": "integer >= 1 (optional)"
+	"sort_order": "integer >= 1 (optional)",
+	"expected_version": "string (optional, for optimistic locking)"
 }
 ```
 
@@ -605,6 +627,7 @@ Update a section (rename and/or reorder).
 - `400 Bad Request` - Validation error (missing both parameters, name exceeds 50 chars, invalid sort_order)
 - `401 Unauthorized` - Invalid or missing token
 - `404 Not Found` - List or section not found or belongs to different user
+- `409 Conflict` - Version mismatch (when expected_version is provided)
 - `500 Internal Server Error` - Server error
 
 **Response (200 - Rename only):**
@@ -617,7 +640,8 @@ Update a section (rename and/or reorder).
 		"list_id": "l001",
 		"section_name": "Poultry",
 		"sort_order": 2,
-		"last_modified": "2026-07-10T15:30:00Z"
+		"last_modified": "2026-07-10T15:30:00Z",
+		"version": "2"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
 }
@@ -633,7 +657,8 @@ Update a section (rename and/or reorder).
 		"list_id": "l001",
 		"section_name": "Poultry",
 		"sort_order": 100,
-		"last_modified": "2026-07-10T15:30:00Z"
+		"last_modified": "2026-07-10T15:30:00Z",
+		"version": "2"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
 }
@@ -648,12 +673,36 @@ Update a section (rename and/or reorder).
 		"section_id": "sec003",
 		"list_id": "l001",
 		"section_name": "Dairy & Eggs",
-		"sort_order": 50,
-		"last_modified": "2026-07-10T15:30:00Z"
+		"sort_order": 5,
+		"last_modified": "2026-07-10T15:30:00Z",
+		"version": "3"
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
 }
 ```
+
+**Response (409):**
+
+```json
+{
+	"success": false,
+	"data": null,
+	"error": {
+		"code": "CONFLICT",
+		"message": "Version conflict: expected 1, but current version is 2"
+	},
+	"timestamp": "2026-07-10T15:30:00Z"
+}
+```
+
+    	"sort_order": 50,
+    	"last_modified": "2026-07-10T15:30:00Z"
+    },
+    "timestamp": "2026-07-10T15:30:00Z"
+
+}
+
+````
 
 ---
 
@@ -683,7 +732,7 @@ Delete a section from a list.
 	"data": null,
 	"timestamp": "2026-07-10T15:30:00Z"
 }
-```
+````
 
 ---
 
@@ -708,13 +757,14 @@ _Coming in Phase 3 - Backend API: Items & Sync_
 
 ## Error Codes
 
-| Code                  | HTTP Status | Description                             |
-| --------------------- | ----------- | --------------------------------------- |
-| `VALIDATION_ERROR`    | 400         | Input validation failed                 |
-| `UNAUTHORIZED`        | 401         | Invalid or missing authentication token |
-| `NOT_FOUND`           | 404         | Requested resource not found            |
-| `INTERNAL_ERROR`      | 500         | Server-side error                       |
-| `HEALTH_CHECK_FAILED` | 503         | Server health check failed              |
+| Code                  | HTTP Status | Description                                           |
+| --------------------- | ----------- | ----------------------------------------------------- |
+| `VALIDATION_ERROR`    | 400         | Input validation failed                               |
+| `UNAUTHORIZED`        | 401         | Invalid or missing authentication token               |
+| `NOT_FOUND`           | 404         | Requested resource not found                          |
+| `CONFLICT`            | 409         | Resource conflict (version mismatch, duplicate entry) |
+| `INTERNAL_ERROR`      | 500         | Server-side error                                     |
+| `HEALTH_CHECK_FAILED` | 503         | Server health check failed                            |
 
 ---
 

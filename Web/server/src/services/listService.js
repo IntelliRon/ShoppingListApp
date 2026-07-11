@@ -160,33 +160,38 @@ async function updateList(userId, listId, listName, expectedVersion) {
 		);
 	}
 
-	// If expectedVersion is provided, validate it first (optimistic locking)
-	if (expectedVersion !== undefined && expectedVersion !== null) {
-		const currentList = await getList(userId, listId);
-		if (!currentList) {
-			throw new Error("List not found");
-		}
-		if (String(currentList.version) !== String(expectedVersion)) {
-			const error = new Error(
-				`Version conflict: expected ${expectedVersion}, but current version is ${currentList.version}`
-			);
-			error.code = "CONFLICT";
-			throw error;
-		}
+	// Verify list exists
+	const list = await getList(userId, listId);
+	if (!list) {
+		throw new Error("List not found");
 	}
 
 	const listPath = getListsFilePath(userId);
 	const now = new Date().toISOString();
 
+	// Validate expectedVersion inside the locked update operation for atomicity
 	const updated = await csvService.updateRecords(
 		listPath,
 		(record) => record.list_id === listId,
-		(record) => ({
-			...record,
-			list_name: listName.trim(),
-			last_modified: now,
-			version: String(parseInt(record.version || 0) + 1),
-		})
+		(record) => {
+			// Check version conflict inside the locked operation
+			if (expectedVersion !== undefined && expectedVersion !== null) {
+				if (String(record.version) !== String(expectedVersion)) {
+					const error = new Error(
+						`Version conflict: expected ${expectedVersion}, but current version is ${record.version}`
+					);
+					error.code = "CONFLICT";
+					throw error;
+				}
+			}
+
+			return {
+				...record,
+				list_name: listName.trim(),
+				last_modified: now,
+				version: String(parseInt(record.version || 0) + 1),
+			};
+		}
 	);
 
 	// Return updated record
@@ -396,17 +401,6 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder, 
 		throw new Error("Section not found");
 	}
 
-	// If expectedVersion is provided, validate it first (optimistic locking)
-	if (expectedVersion !== undefined && expectedVersion !== null) {
-		if (String(section.version) !== String(expectedVersion)) {
-			const error = new Error(
-				`Version conflict: expected ${expectedVersion}, but current version is ${section.version}`
-			);
-			error.code = "CONFLICT";
-			throw error;
-		}
-	}
-
 	const sectionsPath = getSectionsFilePath(userId);
 	const now = new Date().toISOString();
 
@@ -419,7 +413,7 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder, 
 		// Calculate the reordered sections
 		const reorderedSections = reorderSections(listSections, sectionId, sortOrder);
 
-		// Update all affected sections in one operation
+		// Update all affected sections in one operation with version check inside the locked function
 		const updated = await csvService.updateRecords(
 			sectionsPath,
 			(record) => record.list_id === listId,
@@ -438,6 +432,17 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder, 
 
 				// Only increment version for the target section being updated
 				if (record.section_id === sectionId) {
+					// Check version conflict inside the locked operation for atomicity
+					if (expectedVersion !== undefined && expectedVersion !== null) {
+						if (String(record.version) !== String(expectedVersion)) {
+							const error = new Error(
+								`Version conflict: expected ${expectedVersion}, but current version is ${record.version}`
+							);
+							error.code = "CONFLICT";
+							throw error;
+						}
+					}
+
 					if (hasSectionName) {
 						updateData.section_name = sectionName.trim();
 					}
@@ -452,16 +457,29 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder, 
 		return updated.find((r) => r.section_id === sectionId) || null;
 	}
 
-	// Simple update: just rename (no reordering)
+	// Simple update: just rename (no reordering) with version check inside the locked operation
 	const updated = await csvService.updateRecords(
 		sectionsPath,
 		(record) => record.section_id === sectionId,
-		(record) => ({
-			...record,
-			section_name: sectionName.trim(),
-			last_modified: now,
-			version: String(parseInt(record.version || 0) + 1),
-		})
+		(record) => {
+			// Check version conflict inside the locked operation for atomicity
+			if (expectedVersion !== undefined && expectedVersion !== null) {
+				if (String(record.version) !== String(expectedVersion)) {
+					const error = new Error(
+						`Version conflict: expected ${expectedVersion}, but current version is ${record.version}`
+					);
+					error.code = "CONFLICT";
+					throw error;
+				}
+			}
+
+			return {
+				...record,
+				section_name: sectionName.trim(),
+				last_modified: now,
+				version: String(parseInt(record.version || 0) + 1),
+			};
+		}
 	);
 
 	// Return updated record
