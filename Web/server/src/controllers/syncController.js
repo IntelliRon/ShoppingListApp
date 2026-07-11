@@ -68,8 +68,19 @@ async function syncItems(req, res) {
 				});
 			}
 
-			// Validate last_modified is valid ISO 8601 timestamp for update/delete
-			if (["update", "delete"].includes(item.operation) && item.last_modified) {
+			// Require last_modified for update/delete operations (needed for conflict resolution)
+			if (["update", "delete"].includes(item.operation)) {
+				if (!item.last_modified) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "VALIDATION_ERROR",
+							message: `last_modified is required for ${item.operation} operation`,
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
 				const timestamp = new Date(item.last_modified).getTime();
 				if (isNaN(timestamp)) {
 					return res.status(400).json({
