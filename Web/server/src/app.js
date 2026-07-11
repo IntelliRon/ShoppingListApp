@@ -54,7 +54,8 @@ app.get("/api/v1/health", (req, res) => {
 		const path = require("path");
 
 		// Verify CSV database directory is accessible
-		const dbPath = path.join(__dirname, "..", config.database.path);
+		// Support test database path via environment variable (matching listService path resolution)
+		const dbPath = process.env.TEST_DB_PATH || path.join(__dirname, "..", config.database.path);
 		fs.accessSync(dbPath, fs.constants.R_OK | fs.constants.W_OK);
 
 		res.status(200).json({

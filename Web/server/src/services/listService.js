@@ -413,7 +413,7 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder, 
 		// Calculate the reordered sections
 		const reorderedSections = reorderSections(listSections, sectionId, sortOrder);
 
-		// Update all affected sections in one operation with version check inside the locked function
+		// Update only records that actually changed, incrementing version for all modified records
 		const updated = await csvService.updateRecords(
 			sectionsPath,
 			(record) => record.list_id === listId,
@@ -424,13 +424,28 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder, 
 					return record;
 				}
 
+				// Check if sort_order actually changed for this record
+				const sortOrderChanged = String(record.sort_order) !== String(reordered.sort_order);
+
+				// For target section, check if section_name will change too
+				const sectionNameWillChange = record.section_id === sectionId && hasSectionName;
+
+				// Only update if something actually changed
+				if (!sortOrderChanged && !sectionNameWillChange) {
+					return record;
+				}
+
 				const updateData = {
 					...record,
-					sort_order: reordered.sort_order,
 					last_modified: now,
 				};
 
-				// Only increment version for the target section being updated
+				// Update sort_order if it changed
+				if (sortOrderChanged) {
+					updateData.sort_order = reordered.sort_order;
+				}
+
+				// For target section: check version, update name if provided, and increment version
 				if (record.section_id === sectionId) {
 					// Check version conflict inside the locked operation for atomicity
 					if (expectedVersion !== undefined && expectedVersion !== null) {
@@ -443,9 +458,12 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder, 
 						}
 					}
 
-					if (hasSectionName) {
+					if (sectionNameWillChange) {
 						updateData.section_name = sectionName.trim();
 					}
+					updateData.version = String(parseInt(record.version || 0) + 1);
+				} else if (sortOrderChanged) {
+					// For shifted sections, also increment version since the record was modified
 					updateData.version = String(parseInt(record.version || 0) + 1);
 				}
 

@@ -28,6 +28,7 @@ delete require.cache[require.resolve("../../src/routes/auth")];
 
 const request = require("supertest");
 const app = require("../../src/app");
+const config = require("../../src/config/defaults.json");
 
 // Test constants
 const TEST_USER = {
@@ -116,7 +117,7 @@ describe("Lists and Sections API", () => {
 	});
 
 	it("should reject creating list with name exceeding max length", async () => {
-		const longName = "a".repeat(101);
+		const longName = "a".repeat(config.limits.max_list_name_length + 1);
 		const response = await request(app)
 			.post("/api/v1/lists")
 			.set("Authorization", `Bearer ${authToken}`)

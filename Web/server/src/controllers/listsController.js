@@ -22,6 +22,7 @@ async function getAllLists(req, res) {
 			list_name: list.list_name,
 			created_at: list.created_at,
 			last_modified: list.last_modified,
+			version: String(list.version),
 			item_count: 0,
 			completed_count: 0,
 		}));
@@ -298,6 +299,7 @@ async function getListSections(req, res) {
 				list_id: section.list_id,
 				section_name: section.section_name,
 				sort_order: parseInt(section.sort_order, 10),
+				version: String(section.version),
 				created_at: section.created_at,
 				last_modified: section.last_modified,
 			})),

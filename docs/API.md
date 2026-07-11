@@ -695,15 +695,6 @@ Update a section (rename and/or reorder) with optional optimistic locking suppor
 }
 ```
 
-    	"sort_order": 50,
-    	"last_modified": "2026-07-10T15:30:00Z"
-    },
-    "timestamp": "2026-07-10T15:30:00Z"
-
-}
-
-````
-
 ---
 
 ### DELETE /lists/{list_id}/sections/{section_id}
@@ -732,7 +723,7 @@ Delete a section from a list.
 	"data": null,
 	"timestamp": "2026-07-10T15:30:00Z"
 }
-````
+```
 
 ---
 
