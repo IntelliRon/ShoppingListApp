@@ -67,6 +67,35 @@ async function syncItems(req, res) {
 					timestamp: new Date().toISOString(),
 				});
 			}
+
+			// Validate last_modified is valid ISO 8601 timestamp for update/delete
+			if (["update", "delete"].includes(item.operation) && item.last_modified) {
+				const timestamp = new Date(item.last_modified).getTime();
+				if (isNaN(timestamp)) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "VALIDATION_ERROR",
+							message: "last_modified must be valid ISO 8601 timestamp",
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+			}
+
+			// Require item_name for create/update operations
+			if (["create", "update"].includes(item.operation) && !item.item_name) {
+				return res.status(400).json({
+					success: false,
+					data: null,
+					error: {
+						code: "VALIDATION_ERROR",
+						message: `item_name is required for ${item.operation} operation`,
+					},
+					timestamp: new Date().toISOString(),
+				});
+			}
 		}
 
 		// Perform sync
@@ -85,7 +114,7 @@ async function syncItems(req, res) {
 		// eslint-disable-next-line no-console
 		console.error("[Sync Error]", error.message);
 
-		// Handle not found errors
+		// Handle not found errors (list doesn't exist)
 		if (error.message.includes("not found")) {
 			return res.status(404).json({
 				success: false,
@@ -93,6 +122,23 @@ async function syncItems(req, res) {
 				error: {
 					code: "NOT_FOUND",
 					message: "List not found",
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
+
+		// Handle validation errors from service layer (item_name too long, max items, invalid section, etc.)
+		if (
+			error.message.includes("must be") ||
+			error.message.includes("Maximum") ||
+			error.message.includes("Section")
+		) {
+			return res.status(400).json({
+				success: false,
+				data: null,
+				error: {
+					code: "VALIDATION_ERROR",
+					message: error.message,
 				},
 				timestamp: new Date().toISOString(),
 			});

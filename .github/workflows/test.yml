@@ -2,9 +2,9 @@ name: Run Tests
 
 on:
   pull_request:
-    branches: [ master, develop ]
+    branches: [master, develop]
   push:
-    branches: [ master, develop ]
+    branches: [master, develop]
 
 jobs:
   test:
@@ -13,35 +13,35 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-      
+          node-version: "24"
+
       - name: Install dependencies
         working-directory: Web/server
         run: npm ci
-      
+
       - name: Run unit tests
         working-directory: Web/server
         run: npm run test:unit
-      
+
       - name: Run integration tests
         working-directory: Web/server
         run: npm run test:integration
-      
+
       - name: Generate coverage report
         working-directory: Web/server
         run: npm run test:coverage
-      
+
       - name: Post coverage to PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v6
@@ -51,10 +51,10 @@ jobs:
             const fs = require('fs');
             const path = require('path');
             const coveragePath = path.join(process.cwd(), 'Web', 'server', 'coverage', 'coverage-summary.json');
-            
+
             console.log('Current working directory:', process.cwd());
             console.log('Looking for coverage at:', coveragePath);
-            
+
             // Debug: List Web/server directory
             const webServerPath = path.join(process.cwd(), 'Web', 'server');
             if (fs.existsSync(webServerPath)) {
@@ -66,17 +66,24 @@ jobs:
                 console.log('Coverage directory does not exist');
               }
             }
-            
+
             if (!fs.existsSync(coveragePath)) {
               console.log('⚠️  Coverage report not found at', coveragePath);
               console.log('Skipping PR comment - coverage data unavailable');
               return;
             }
-            
+
             try {
               const data = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
               const total = data.total;
-              const comment = `## Coverage Report\n| Metric | Percentage |\n|--------|------------|\n| Statements | ${total.statements.pct}% |\n| Branches | ${total.branches.pct}% |\n| Functions | ${total.functions.pct}% |\n| Lines | ${total.lines.pct}% |`;
+              
+              // Get commit SHA and create timestamp
+              const commitSha = context.payload.pull_request.head.sha;
+              const shortSha = commitSha.substring(0, 7);
+              const commitUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/commit/${commitSha}`;
+              const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+              
+              const comment = `## Coverage Report\n[\`${shortSha}\`](${commitUrl}) • Last updated: ${timestamp}\n\n| Metric | Percentage |\n|--------|------------|\n| Statements | ${total.statements.pct}% |\n| Branches | ${total.branches.pct}% |\n| Functions | ${total.functions.pct}% |\n| Lines | ${total.lines.pct}% |`;
               
               // Use PR number directly from pull_request context
               const prNumber = context.payload.pull_request.number;

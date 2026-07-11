@@ -249,8 +249,9 @@ describe("Items API", () => {
 					item_name: "New Name",
 				});
 
-			expect(res.status).toBe(400);
+			expect(res.status).toBe(404);
 			expect(res.body.success).toBe(false);
+			expect(res.body.error.code).toBe("NOT_FOUND");
 		});
 	});
 

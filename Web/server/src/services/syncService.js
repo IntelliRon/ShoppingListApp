@@ -29,12 +29,9 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 
 		// Track conflicts
 		const conflicts = [];
-		const processedIds = new Set();
 
 		// Process each client item
 		for (const clientItem of clientItems) {
-			processedIds.add(clientItem.item_id);
-
 			// Skip invalid operations
 			if (!["create", "update", "delete"].includes(clientItem.operation)) {
 				continue;

@@ -17,10 +17,21 @@ async function getAllLists(req, res) {
 		const lists = await listService.getAllLists(userId);
 		const allItems = await itemService.getAllItems(userId);
 
+		// Pre-aggregate item counts by list_id in one pass (O(n) instead of O(lists * items))
+		const countsByListId = {};
+		allItems.forEach((item) => {
+			if (!countsByListId[item.list_id]) {
+				countsByListId[item.list_id] = { total: 0, completed: 0 };
+			}
+			countsByListId[item.list_id].total += 1;
+			if (item.is_completed === "true") {
+				countsByListId[item.list_id].completed += 1;
+			}
+		});
+
 		// Add item_count and completed_count for each list
 		const enrichedLists = lists.map((list) => {
-			const listItems = allItems.filter((item) => item.list_id === list.list_id);
-			const completedCount = listItems.filter((item) => item.is_completed === "true").length;
+			const counts = countsByListId[list.list_id] || { total: 0, completed: 0 };
 
 			return {
 				list_id: list.list_id,
@@ -28,8 +39,8 @@ async function getAllLists(req, res) {
 				created_at: list.created_at,
 				last_modified: list.last_modified,
 				version: String(list.version),
-				item_count: listItems.length,
-				completed_count: completedCount,
+				item_count: counts.total,
+				completed_count: counts.completed,
 			};
 		});
 

@@ -145,18 +145,6 @@ async function updateItem(req, res) {
 
 		const updatedItem = await itemService.updateItem(userId, list_id, item_id, updates);
 
-		if (!updatedItem) {
-			return res.status(404).json({
-				success: false,
-				data: null,
-				error: {
-					code: "NOT_FOUND",
-					message: "Item not found",
-				},
-				timestamp: new Date().toISOString(),
-			});
-		}
-
 		res.status(200).json({
 			success: true,
 			data: {
@@ -172,12 +160,24 @@ async function updateItem(req, res) {
 		// eslint-disable-next-line no-console
 		console.error("[Items Error]", error.message);
 
-		// Handle validation errors
+		// Handle not found errors (404)
+		if (error.message.includes("not found")) {
+			return res.status(404).json({
+				success: false,
+				data: null,
+				error: {
+					code: "NOT_FOUND",
+					message: error.message,
+				},
+				timestamp: new Date().toISOString(),
+			});
+		}
+
+		// Handle validation errors (400)
 		if (
 			error.message.includes("Item name") ||
 			error.message.includes("maximum") ||
 			error.message.includes("must be") ||
-			error.message.includes("not found") ||
 			error.message.includes("required")
 		) {
 			return res.status(400).json({
