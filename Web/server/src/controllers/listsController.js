@@ -4,6 +4,7 @@
  */
 
 const listService = require("../services/listService");
+const itemService = require("../services/itemService");
 
 /**
  * Get all lists for authenticated user
@@ -14,18 +15,34 @@ async function getAllLists(req, res) {
 		const userId = req.userId; // Set by requireAuth middleware
 
 		const lists = await listService.getAllLists(userId);
+		const allItems = await itemService.getAllItems(userId);
+
+		// Pre-aggregate item counts by list_id in one pass (O(n) instead of O(lists * items))
+		const countsByListId = {};
+		allItems.forEach((item) => {
+			if (!countsByListId[item.list_id]) {
+				countsByListId[item.list_id] = { total: 0, completed: 0 };
+			}
+			countsByListId[item.list_id].total += 1;
+			if (item.is_completed === "true") {
+				countsByListId[item.list_id].completed += 1;
+			}
+		});
 
 		// Add item_count and completed_count for each list
-		// TODO: Calculate these when items service is implemented
-		const enrichedLists = lists.map((list) => ({
-			list_id: list.list_id,
-			list_name: list.list_name,
-			created_at: list.created_at,
-			last_modified: list.last_modified,
-			version: String(list.version),
-			item_count: 0,
-			completed_count: 0,
-		}));
+		const enrichedLists = lists.map((list) => {
+			const counts = countsByListId[list.list_id] || { total: 0, completed: 0 };
+
+			return {
+				list_id: list.list_id,
+				list_name: list.list_name,
+				created_at: list.created_at,
+				last_modified: list.last_modified,
+				version: String(list.version),
+				item_count: counts.total,
+				completed_count: counts.completed,
+			};
+		});
 
 		res.status(200).json({
 			success: true,

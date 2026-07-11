@@ -1,7 +1,7 @@
 # Shopping List App - Comprehensive Project Plan
 
-**Project Date:** 2026-07-10  
-**Status:** Phase 2 - Backend API: Lists & Sections (Complete)  
+**Project Date:** 2026-07-11  
+**Status:** Phase 3 - Backend API: Items & Sync (Complete)  
 **Monorepo Structure:** App (Android) + Web (Backend/Developer UI)
 
 ---
@@ -1625,12 +1625,12 @@ Closes #42
 
 ### Phase 3: Backend API - Items & Sync (Weeks 6-7)
 
-- [ ] Item CRUD endpoints
-- [ ] Item completion toggle
-- [ ] Sync endpoint with conflict resolution
-- [ ] Last-modified timestamp tracking
-- [ ] Integration tests for items
-- [ ] Sync logic unit tests
+- [x] Item CRUD endpoints
+- [x] Item completion toggle
+- [x] Sync endpoint with conflict resolution
+- [x] Last-modified timestamp tracking
+- [x] Integration tests for items
+- [x] Integration tests for sync (conflict resolution)
 
 ### Phase 4: Backend Configuration & Developer UI (Week 8)
 
@@ -1797,10 +1797,11 @@ Closes #42
 
 | Date       | Author       | Changes                                                                                                                        |
 | ---------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| 2026-07-10 | IntelliRon   | Phase 2 complete: List and Section CRUD endpoints, authorization, validation, integration tests                               |
+| 2026-07-11 | IntelliRon   | Phase 3 complete: Item CRUD endpoints, sync with conflict resolution, Phase 3.1 client_id→server_id mapping for offline items  |
+| 2026-07-10 | IntelliRon   | Phase 2 complete: List and Section CRUD endpoints, authorization, validation, integration tests                                |
 | 2026-07-05 | IntelliRon   | Phase 1 status update, authentication architecture, CSV persistence with single-writer pattern, configuration path corrections |
 | 2026-07-04 | Project Team | Initial plan created                                                                                                           |
 
 ---
 
-**Next Step:** Begin Phase 3 - Backend API: Items & Sync
+**Next Step:** Begin Phase 4 - Backend Configuration & Developer UI

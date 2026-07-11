@@ -212,16 +212,21 @@ async function updateList(userId, listId, listName, expectedVersion) {
  */
 async function deleteList(userId, listId) {
 	try {
+		// Import itemService to delete items
+		// Use require here to avoid circular dependency if itemService imports from listService
+		const itemService = require("./itemService");
+
 		const listPath = getListsFilePath(userId);
 		const sectionsPath = getSectionsFilePath(userId);
 
-		// Delete the list
-		await csvService.deleteRecords(listPath, (record) => record.list_id === listId);
+		// Delete items FIRST to prevent orphaned items if list deletion succeeds but items fail
+		await itemService.deleteListItems(userId, listId);
 
 		// Delete all sections in this list
 		await csvService.deleteRecords(sectionsPath, (record) => record.list_id === listId);
 
-		// TODO: Delete items when items service is implemented
+		// Delete the list last
+		await csvService.deleteRecords(listPath, (record) => record.list_id === listId);
 
 		return { success: true };
 	} catch (error) {
@@ -525,12 +530,17 @@ async function deleteSection(userId, listId, sectionId) {
 			throw new Error("Section not found");
 		}
 
+		// Import itemService to delete items in section
+		// Use require here to avoid circular dependency if itemService imports from listService
+		const itemService = require("./itemService");
+
 		const sectionsPath = getSectionsFilePath(userId);
 
-		// Delete the section
-		await csvService.deleteRecords(sectionsPath, (record) => record.section_id === sectionId);
+		// Delete all items in this section FIRST to prevent orphaned items
+		await itemService.deleteSectionItems(userId, listId, sectionId);
 
-		// TODO: Handle items in this section (move to ungrouped or delete when items service is implemented)
+		// Delete the section last
+		await csvService.deleteRecords(sectionsPath, (record) => record.section_id === sectionId);
 
 		return { success: true };
 	} catch (error) {
