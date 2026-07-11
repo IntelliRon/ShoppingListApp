@@ -995,6 +995,9 @@ Authorization: Bearer eyJhbGc...
 				}
 			}
 		],
+		"id_mapping": {
+			"i999": "i003"
+		},
 		"synced_at": "2026-07-10T15:35:00Z"
 	},
 	"timestamp": "2026-07-10T15:35:00Z"
@@ -1028,6 +1031,7 @@ Authorization: Bearer eyJhbGc...
 - Client must handle conflicts and perform retry sync if needed
 - Returning all server items allows client to rebuild full state
 - Operations not included in the sync are considered unchanged on client
+- **ID Mapping (Phase 3.1 enhancement):** The `id_mapping` field tracks client-provided `item_id` → server-generated `item_id` for created items. Clients should use this to update local records: if client sent `{"item_id": "i999", "operation": "create", ...}` and receives `id_mapping: {"i999": "i003"}`, the client should replace all references to `i999` with `i003` in their local database to stay in sync with the server.
 
 ---
 

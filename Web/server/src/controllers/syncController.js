@@ -106,6 +106,7 @@ async function syncItems(req, res) {
 			data: {
 				server_items: result.server_items,
 				conflicts: result.conflicts,
+				id_mapping: result.id_mapping,
 				synced_at: result.synced_at,
 			},
 			timestamp: new Date().toISOString(),

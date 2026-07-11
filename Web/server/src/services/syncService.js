@@ -18,6 +18,15 @@ const itemService = require("./itemService");
 // eslint-disable-next-line no-unused-vars
 async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 	try {
+		// Verify list exists
+		try {
+			await itemService.getListItems(userId, listId);
+		} catch (error) {
+			if (error.message.includes("not found")) {
+				throw new Error("List not found");
+			}
+		}
+
 		// Get server items for this list
 		const serverItems = await itemService.getListItems(userId, listId);
 
@@ -27,8 +36,9 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 			serverItemsMap[item.item_id] = item;
 		});
 
-		// Track conflicts
+		// Track conflicts and created item mappings (client_id → server_id)
 		const conflicts = [];
+		const idMapping = {};
 
 		// Process each client item
 		for (const clientItem of clientItems) {
@@ -51,18 +61,15 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 						client_version: clientItem,
 					});
 				} else {
-					// Safe to create
-					// NOTE: clientItem.item_id is ignored here; server generates its own ID
-					// For offline-created items, clients should reconcile by comparing
-					// item_name + last_modified against returned server_items (see API.md)
-					// TODO: Support client-provided IDs or return client_id→server_id mapping
-					// for better offline reconciliation (Phase 3.1 enhancement)
-					await itemService.createItem(
+					// Safe to create - server generates its own ID and tracks mapping
+					const createdItem = await itemService.createItem(
 						userId,
 						listId,
 						clientItem.item_name,
 						clientItem.section_id || null
 					);
+					// Track mapping from client-provided ID to server-generated ID
+					idMapping[clientItem.item_id] = createdItem.item_id;
 				}
 			} else if (clientItem.operation === "update") {
 				if (!serverItem) {
@@ -132,6 +139,7 @@ async function syncItems(userId, listId, clientItems = [], lastSync = null) {
 		return {
 			server_items: allSyncItems,
 			conflicts: conflicts,
+			id_mapping: idMapping,
 			synced_at: syncTimestamp,
 		};
 	} catch (error) {

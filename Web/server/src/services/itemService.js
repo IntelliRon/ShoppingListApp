@@ -170,7 +170,9 @@ async function createItem(userId, listId, itemName, sectionId = null) {
 	// Atomically generate ID and create item (single-writer pattern)
 	// This prevents duplicate IDs under concurrent creates
 	const allItems = await csvService.readCSV(itemsPath);
-	if (allItems.length >= config.limits.max_items_per_list) {
+	// Check max items PER LIST (not across all user lists)
+	const listItems = allItems.filter((item) => item.list_id === listId);
+	if (listItems.length >= config.limits.max_items_per_list) {
 		throw new Error(`Maximum ${config.limits.max_items_per_list} items per list reached`);
 	}
 	const itemId = generateItemId(allItems);
