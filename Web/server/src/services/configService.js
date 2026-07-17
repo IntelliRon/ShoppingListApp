@@ -11,29 +11,47 @@ const path = require("path");
 let config = null;
 
 /**
- * Load configuration from defaults.json
+ * Load configuration from defaults.json or defaults.example.json
  * Supports environment-specific overrides (defaults.{NODE_ENV}.json)
+ *
+ * Priority:
+ * 1. defaults.json (local server override, not tracked in git)
+ * 2. defaults.example.json (tracked template as fallback)
+ * 3. Environment-specific overrides (defaults.{NODE_ENV}.json)
  */
 function loadConfig() {
 	try {
 		const configDir = path.join(__dirname, "..", "config");
 		const env = process.env.NODE_ENV || "development";
+		const defaultsPath = path.join(configDir, "defaults.json");
+		const defaultsExamplePath = path.join(configDir, "defaults.example.json");
 
-		// Try environment-specific config first
+		// Load base configuration: try defaults.json, fall back to defaults.example.json
+		let baseConfigPath;
+		if (fs.existsSync(defaultsPath)) {
+			baseConfigPath = defaultsPath;
+		} else if (fs.existsSync(defaultsExamplePath)) {
+			baseConfigPath = defaultsExamplePath;
+		} else {
+			throw new Error(
+				"Neither defaults.json nor defaults.example.json found in config directory"
+			);
+		}
+
+		config = JSON.parse(fs.readFileSync(baseConfigPath, "utf8"));
+
+		// Try environment-specific overrides
 		const envConfigPath = path.join(configDir, `defaults.${env}.json`);
 		if (fs.existsSync(envConfigPath)) {
 			const envConfig = JSON.parse(fs.readFileSync(envConfigPath, "utf8"));
-			config = deepMerge(
-				JSON.parse(fs.readFileSync(path.join(configDir, "defaults.json"), "utf8")),
-				envConfig
-			);
+			config = deepMerge(config, envConfig);
 			// eslint-disable-next-line no-console
 			console.log(`[ConfigService] Loaded configuration with ${env} overrides`);
 		} else {
-			// Load base configuration
-			config = JSON.parse(fs.readFileSync(path.join(configDir, "defaults.json"), "utf8"));
 			// eslint-disable-next-line no-console
-			console.log("[ConfigService] Loaded default configuration");
+			console.log(
+				`[ConfigService] Loaded configuration from ${path.basename(baseConfigPath)}`
+			);
 		}
 
 		return config;

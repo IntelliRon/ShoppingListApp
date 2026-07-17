@@ -1,8 +1,8 @@
 /**
  * Developer Endpoints Integration Tests
  *
- * NOTE: These tests are marked as skipped because setting the is_developer flag
- * requires CSV updates that can cause concurrency issues during testing.
+ * NOTE: These tests use describe(...) (not describe.skip) and will run.
+ * Setting the is_developer flag requires CSV updates that can cause concurrency issues during testing.
  * The functionality is tested through the API endpoints and developer UI.
  */
 

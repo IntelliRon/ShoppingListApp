@@ -1076,12 +1076,12 @@ Get current server configuration. **Requires developer role.**
 		},
 		"auth": {
 			"bcrypt_rounds": 10,
-			"password_min_length": 8,
+			"password_min_length": 10,
 			"session_expiry_days": 30,
 			"session_rotation_days": 7
 		},
 		"limits": {
-			"max_items_per_list": 1000,
+			"max_items_per_list": 2000,
 			"max_sections_per_list": 50,
 			"max_lists_per_user": 100,
 			"max_username_length": 32,
@@ -1199,7 +1199,8 @@ Safe configuration keys that can be updated:
 				"max": 100
 			},
 			"logging": {
-				"level": "info"
+				"level": "info",
+				"format": "json"
 			}
 		}
 	},
@@ -1252,12 +1253,12 @@ Reload configuration from disk. **Requires developer role.**
 			},
 			"auth": {
 				"bcrypt_rounds": 10,
-				"password_min_length": 8,
+				"password_min_length": 10,
 				"session_expiry_days": 30,
 				"session_rotation_days": 7
 			},
 			"limits": {
-				"max_items_per_list": 1000,
+				"max_items_per_list": 2000,
 				"max_sections_per_list": 50,
 				"max_lists_per_user": 100,
 				"max_username_length": 32,
@@ -1271,7 +1272,8 @@ Reload configuration from disk. **Requires developer role.**
 				"max": 100
 			},
 			"logging": {
-				"level": "info"
+				"level": "info",
+				"format": "json"
 			}
 		}
 	},

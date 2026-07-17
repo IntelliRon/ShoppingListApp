@@ -377,7 +377,7 @@ body {
 	border-radius: 0.25rem;
 }
 
-.login-form input:focus,
+#login-form input:focus,
 .form-group input:focus {
 	outline: none;
 	border-color: var(--primary-color);

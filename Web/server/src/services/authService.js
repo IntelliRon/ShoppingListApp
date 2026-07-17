@@ -8,7 +8,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const crypto = require("crypto");
 const csvService = require("./csvService");
-const config = require("../config/defaults.json");
+const configService = require("./configService");
 
 // Handle uuid import (works with both CommonJS and ESM)
 let uuidv4;
@@ -21,18 +21,19 @@ try {
 }
 
 const USERS_FILE =
-	process.env.TEST_USERS_FILE || path.join(__dirname, "..", "..", config.database.users_file);
+	process.env.TEST_USERS_FILE ||
+	path.join(__dirname, "..", "..", configService.get("database.users_file"));
 
 const BLACKLIST_FILE =
 	process.env.TEST_BLACKLIST_FILE ||
-	path.join(__dirname, "..", "..", config.database.blacklist_file);
+	path.join(__dirname, "..", "..", configService.get("database.blacklist_file"));
 
 /**
  * Validate username format
  */
 function validateUsername(username) {
 	const minLength = 3;
-	const maxLength = config.limits.max_username_length;
+	const maxLength = configService.get("limits.max_username_length");
 	const regex = /^[a-zA-Z0-9_]+$/;
 
 	if (!username || typeof username !== "string") {
@@ -61,7 +62,7 @@ function validateUsername(username) {
  * Validate password strength
  */
 function validatePassword(password) {
-	const minLength = config.auth.password_min_length;
+	const minLength = configService.get("auth.password_min_length");
 
 	if (!password || typeof password !== "string") {
 		return { valid: false, error: "Password is required" };
@@ -100,7 +101,7 @@ function validateEmail(email) {
  * Hash password using bcrypt
  */
 async function hashPassword(password) {
-	const rounds = config.auth.bcrypt_rounds;
+	const rounds = configService.get("auth.bcrypt_rounds");
 	return bcrypt.hash(password, rounds);
 }
 
@@ -114,21 +115,21 @@ async function comparePassword(password, hash) {
 /**
  * Generate JWT token with fixed expiry
  * Note: Token rotation is deferred to MVP-2
- * Tokens are issued once and expire after config.auth.session_expiry_days (default 30 days)
+ * Tokens are issued once and expire after configService.get("auth.session_expiry_days") (default 30 days)
  * Requires JWT_SECRET env var in production
  */
 function generateToken(userId) {
-	const secret = process.env.JWT_SECRET || config.auth.jwt_secret;
+	const secret = process.env.JWT_SECRET || configService.get("auth.jwt_secret");
 	const env = process.env.NODE_ENV || "development";
 
 	// In production (not test or dev), JWT_SECRET MUST be explicitly set (not default)
-	if (env === "production" && secret === config.auth.jwt_secret) {
+	if (env === "production" && secret === configService.get("auth.jwt_secret")) {
 		throw new Error(
 			"FATAL: JWT_SECRET environment variable must be set in production. Using default secret is a critical security risk."
 		);
 	}
 
-	const expiresIn = config.auth.session_expiry_days * 24 * 60 * 60; // Convert days to seconds
+	const expiresIn = configService.get("auth.session_expiry_days") * 24 * 60 * 60; // Convert days to seconds
 
 	return jwt.sign(
 		{
@@ -146,7 +147,7 @@ function generateToken(userId) {
  */
 function verifyToken(token) {
 	try {
-		const secret = process.env.JWT_SECRET || config.auth.jwt_secret;
+		const secret = process.env.JWT_SECRET || configService.get("auth.jwt_secret");
 		return jwt.verify(token, secret);
 	} catch (error) {
 		return null;

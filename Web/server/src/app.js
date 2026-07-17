@@ -2,10 +2,9 @@
  * Express Application Setup
  * Configures middleware, routes, and error handling
  *
- * NOTE: Configuration is loaded at startup. While the developer API allows
- * updating config values and persisting them to disk, some changes require
- * a server restart to take effect (CORS, rate limiting). Other values like
- * password_min_length and bcrypt_rounds are applied immediately.
+ * NOTE: Configuration is loaded at startup from defaults.json via configService.
+ * Consumers (authService, listService, etc.) use configService.get() for runtime access,
+ * enabling true runtime config updates when the developer API persists changes to disk.
  *
  * Automated deployment pipeline is operational and ready for production use
  */
@@ -13,7 +12,7 @@
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
-const config = require("./config/defaults.json");
+const configService = require("./services/configService");
 
 const app = express();
 
@@ -22,14 +21,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // CORS Configuration
-app.use(cors(config.server.cors));
+app.use(cors(configService.get("server.cors")));
 
 // Rate Limiting (per-IP; disabled in test environment)
-if (config.rateLimit.enabled && process.env.NODE_ENV !== "test") {
+if (configService.get("rateLimit.enabled") && process.env.NODE_ENV !== "test") {
 	const limiter = rateLimit({
-		windowMs: config.rateLimit.windowMs,
-		max: config.rateLimit.max,
-		skipSuccessfulRequests: config.rateLimit.skipSuccessfulRequests,
+		windowMs: configService.get("rateLimit.windowMs"),
+		max: configService.get("rateLimit.max"),
+		skipSuccessfulRequests: configService.get("rateLimit.skipSuccessfulRequests"),
 		message: "Too many requests, please try again later.",
 	});
 	app.use("/api/", limiter);
@@ -62,7 +61,9 @@ app.get("/api/v1/health", (req, res) => {
 
 		// Verify CSV database directory is accessible
 		// Support test database path via environment variable (matching listService path resolution)
-		const dbPath = process.env.TEST_DB_PATH || path.join(__dirname, "..", config.database.path);
+		const dbPath =
+			process.env.TEST_DB_PATH ||
+			path.join(__dirname, "..", configService.get("database.path"));
 		fs.accessSync(dbPath, fs.constants.R_OK | fs.constants.W_OK);
 
 		res.status(200).json({
