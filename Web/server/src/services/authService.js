@@ -234,6 +234,7 @@ async function loginUser(username, password) {
 
 	// Generate token
 	const token = generateToken(user.user_id);
+	const expiresIn = configService.get("auth.session_expiry_days") * 24 * 60 * 60; // seconds
 
 	return {
 		user_id: user.user_id,
@@ -241,6 +242,7 @@ async function loginUser(username, password) {
 		email: user.email,
 		is_developer: user.is_developer === "true",
 		token,
+		expires_in: expiresIn,
 	};
 }
 

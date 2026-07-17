@@ -123,9 +123,11 @@ Once both servers are running, access the Developer UI:
 ### Features
 
 - **Configuration Editor** - View and modify server configuration
-- **Runtime Updates** - Apply config changes without restart
+- **Config Updates** - Apply config changes (some require API server restart to take effect)
 - **Server Status** - Monitor uptime and system health
 - **Authentication** - Secure login for developers only
+
+**Note:** Configuration changes are persisted immediately, but infrastructure settings like `server.port`, `rateLimit.*`, and CORS require an API server restart to apply. Per-request validations (auth, item limits, etc.) can reflect changes without restart.
 
 ### Authentication
 

@@ -216,7 +216,7 @@ async function updateConfig(req, res) {
 				});
 			}
 
-			// Validate numeric ranges for limits
+			// Validate numeric ranges for limits (per-key validation)
 			if (key.startsWith("limits.")) {
 				if (!Number.isInteger(value)) {
 					return res.status(400).json({
@@ -229,16 +229,52 @@ async function updateConfig(req, res) {
 						timestamp: new Date().toISOString(),
 					});
 				}
-				if (value < 1 || value > 10000) {
-					return res.status(400).json({
-						success: false,
-						data: null,
-						error: {
-							code: "INVALID_VALUE_RANGE",
-							message: "Configuration limits must be between 1 and 10000",
-						},
-						timestamp: new Date().toISOString(),
-					});
+
+				// Per-limit validation based on key
+				if (key === "limits.max_username_length") {
+					// Username length must be at least 3 (min enforced in authService)
+					if (value < 3 || value > 255) {
+						return res.status(400).json({
+							success: false,
+							data: null,
+							error: {
+								code: "INVALID_VALUE_RANGE",
+								message:
+									"max_username_length must be between 3 and 255 (minimum 3 required for validation)",
+							},
+							timestamp: new Date().toISOString(),
+						});
+					}
+				} else if (
+					key === "limits.max_list_name_length" ||
+					key === "limits.max_item_name_length" ||
+					key === "limits.max_section_name_length"
+				) {
+					// Name length limits should allow reasonable ranges
+					if (value < 1 || value > 1000) {
+						return res.status(400).json({
+							success: false,
+							data: null,
+							error: {
+								code: "INVALID_VALUE_RANGE",
+								message: `${key} must be between 1 and 1000`,
+							},
+							timestamp: new Date().toISOString(),
+						});
+					}
+				} else {
+					// Other limits (max_items_per_list, max_sections_per_list, max_lists_per_user)
+					if (value < 1 || value > 10000) {
+						return res.status(400).json({
+							success: false,
+							data: null,
+							error: {
+								code: "INVALID_VALUE_RANGE",
+								message: `${key} must be between 1 and 10000`,
+							},
+							timestamp: new Date().toISOString(),
+						});
+					}
 				}
 			}
 

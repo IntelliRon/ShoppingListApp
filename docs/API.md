@@ -1047,6 +1047,13 @@ Authorization: Bearer eyJhbGc...
 
 ## Developer Endpoints (Phase 4)
 
+**Important:** Configuration changes are persisted immediately, but some infrastructure settings require an API server restart to take effect:
+
+- `server.port`, `server.env` - Require restart
+- `rateLimit.*` - Require restart
+- CORS settings - Require restart
+- Per-request validations (auth, item limits, etc.) - Apply without restart
+
 ### GET /developer/config
 
 Get current server configuration. **Requires developer role.**
