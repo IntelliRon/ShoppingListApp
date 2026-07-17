@@ -56,13 +56,31 @@ const mockConfig = {
 };
 
 describe("ConfigService", () => {
-	// Mock the file write operations to prevent actual file modifications
+	// Store original fs functions before mocking
+	const originalExistsSync = fs.existsSync;
+	const originalReadFileSync = fs.readFileSync;
+
+	// Mock the file operations to prevent actual file modifications and make tests deterministic
 	beforeAll(() => {
 		jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
 			// Don't actually write to file during tests
 		});
 		jest.spyOn(fs, "renameSync").mockImplementation(() => {
 			// Don't actually rename files during tests
+		});
+		jest.spyOn(fs, "existsSync").mockImplementation((filePath) => {
+			// For reload() tests, pretend defaults.json exists (base config)
+			// Return true so loadConfig() will try to read it
+			return filePath.includes("defaults.json") || filePath.includes("defaults.example.json");
+		});
+		jest.spyOn(fs, "readFileSync").mockImplementation((filePath) => {
+			// Mock file reads for config files only - return mockConfig as JSON string
+			// This makes reload() tests deterministic and not dependent on actual filesystem
+			if (filePath.includes("defaults.json") || filePath.includes("defaults.example.json")) {
+				return JSON.stringify(mockConfig);
+			}
+			// For other files, use original implementation
+			return originalReadFileSync.call(fs, filePath, "utf8");
 		});
 	});
 

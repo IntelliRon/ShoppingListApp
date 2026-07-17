@@ -401,10 +401,34 @@ const App = (() => {
 					return;
 				}
 
-				if (key.startsWith("limits.") && (value < 1 || value > 10000)) {
-					showError(`${key} must be between 1 and 10000`);
-					hasValidationError = true;
-					return;
+				if (key.startsWith("limits.")) {
+					// Mirror backend per-key validation (from developerController.js)
+					if (key === "limits.max_username_length") {
+						// Username length must be between 3 and 255 (min 3 enforced in authService)
+						if (value < 3 || value > 255) {
+							showError(`max_username_length must be between 3 and 255`);
+							hasValidationError = true;
+							return;
+						}
+					} else if (
+						key === "limits.max_list_name_length" ||
+						key === "limits.max_item_name_length" ||
+						key === "limits.max_section_name_length"
+					) {
+						// Name length limits: 1-1000
+						if (value < 1 || value > 1000) {
+							showError(`${key} must be between 1 and 1000`);
+							hasValidationError = true;
+							return;
+						}
+					} else {
+						// Other limits (max_items_per_list, max_sections_per_list, max_lists_per_user): 1-10000
+						if (value < 1 || value > 10000) {
+							showError(`${key} must be between 1 and 10000`);
+							hasValidationError = true;
+							return;
+						}
+					}
 				}
 
 				if (
