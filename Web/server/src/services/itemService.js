@@ -6,10 +6,12 @@
 
 const path = require("path");
 const csvService = require("./csvService");
-const config = require("../config/defaults.json");
+const configService = require("./configService");
 
 // Support test database path via environment variable
-const dbPath = process.env.TEST_DB_PATH || path.join(__dirname, "..", "..", config.database.path);
+const dbPath =
+	process.env.TEST_DB_PATH ||
+	path.join(__dirname, "..", "..", configService.get("database.path"));
 
 /**
  * Generate item ID (i001, i002, etc.)
@@ -30,7 +32,7 @@ function generateItemId(items) {
 function getShoppingListsDir() {
 	return process.env.TEST_DB_PATH
 		? path.join(dbPath, "shopping-lists")
-		: path.join(__dirname, "..", "..", config.database.shopping_lists_dir);
+		: path.join(__dirname, "..", "..", configService.get("database.shopping_lists_dir"));
 }
 
 /**
@@ -138,9 +140,9 @@ async function createItem(userId, listId, itemName, sectionId = null) {
 	if (!itemName || typeof itemName !== "string" || itemName.trim().length === 0) {
 		throw new Error("Item name is required");
 	}
-	if (itemName.trim().length > config.limits.max_item_name_length) {
+	if (itemName.trim().length > configService.get("limits.max_item_name_length")) {
 		throw new Error(
-			`Item name must be ${config.limits.max_item_name_length} characters or less`
+			`Item name must be ${configService.get("limits.max_item_name_length")} characters or less`
 		);
 	}
 
@@ -166,8 +168,10 @@ async function createItem(userId, listId, itemName, sectionId = null) {
 	// While not perfectly atomic at filesystem level, it detects and rejects collisions.
 	let allItems = await csvService.readCSV(itemsPath);
 	const listItems = allItems.filter((item) => item.list_id === listId);
-	if (listItems.length >= config.limits.max_items_per_list) {
-		throw new Error(`Maximum ${config.limits.max_items_per_list} items per list reached`);
+	if (listItems.length >= configService.get("limits.max_items_per_list")) {
+		throw new Error(
+			`Maximum ${configService.get("limits.max_items_per_list")} items per list reached`
+		);
 	}
 	const itemId = generateItemId(allItems);
 
@@ -228,9 +232,9 @@ async function updateItem(userId, listId, itemId, updates = {}) {
 		if (typeof updates.item_name !== "string" || updates.item_name.trim().length === 0) {
 			throw new Error("Item name must be a non-empty string");
 		}
-		if (updates.item_name.trim().length > config.limits.max_item_name_length) {
+		if (updates.item_name.trim().length > configService.get("limits.max_item_name_length")) {
 			throw new Error(
-				`Item name must be ${config.limits.max_item_name_length} characters or less`
+				`Item name must be ${configService.get("limits.max_item_name_length")} characters or less`
 			);
 		}
 	}
@@ -245,9 +249,12 @@ async function updateItem(userId, listId, itemId, updates = {}) {
 	}
 
 	// Validate item name max length (already validated above)
-	if (hasItemName && updates.item_name.trim().length > config.limits.max_item_name_length) {
+	if (
+		hasItemName &&
+		updates.item_name.trim().length > configService.get("limits.max_item_name_length")
+	) {
 		throw new Error(
-			`Item name must be ${config.limits.max_item_name_length} characters or less`
+			`Item name must be ${configService.get("limits.max_item_name_length")} characters or less`
 		);
 	}
 

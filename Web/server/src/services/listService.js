@@ -6,10 +6,12 @@
 
 const path = require("path");
 const csvService = require("./csvService");
-const config = require("../config/defaults.json");
+const configService = require("./configService");
 
 // Support test database path via environment variable
-const dbPath = process.env.TEST_DB_PATH || path.join(__dirname, "..", "..", config.database.path);
+const dbPath =
+	process.env.TEST_DB_PATH ||
+	path.join(__dirname, "..", "..", configService.get("database.path"));
 
 /**
  * Generate list ID (l001, l002, etc.)
@@ -53,7 +55,7 @@ function getNextSortOrder(sections, listId) {
 function getShoppingListsDir() {
 	return process.env.TEST_DB_PATH
 		? path.join(dbPath, "shopping-lists")
-		: path.join(__dirname, "..", "..", config.database.shopping_lists_dir);
+		: path.join(__dirname, "..", "..", configService.get("database.shopping_lists_dir"));
 }
 
 /**
@@ -104,16 +106,18 @@ async function createList(userId, listName) {
 	if (!listName || typeof listName !== "string" || listName.trim().length === 0) {
 		throw new Error("List name is required");
 	}
-	if (listName.trim().length > config.limits.max_list_name_length) {
+	if (listName.trim().length > configService.get("limits.max_list_name_length")) {
 		throw new Error(
-			`List name must be ${config.limits.max_list_name_length} characters or less`
+			`List name must be ${configService.get("limits.max_list_name_length")} characters or less`
 		);
 	}
 
 	// Check max lists per user
 	const lists = await getAllLists(userId);
-	if (lists.length >= config.limits.max_lists_per_user) {
-		throw new Error(`Maximum ${config.limits.max_lists_per_user} lists per user reached`);
+	if (lists.length >= configService.get("limits.max_lists_per_user")) {
+		throw new Error(
+			`Maximum ${configService.get("limits.max_lists_per_user")} lists per user reached`
+		);
 	}
 
 	const listPath = getListsFilePath(userId);
@@ -163,9 +167,9 @@ async function updateList(userId, listId, listName, expectedVersion) {
 	if (!listName || typeof listName !== "string" || listName.trim().length === 0) {
 		throw new Error("List name is required");
 	}
-	if (listName.trim().length > config.limits.max_list_name_length) {
+	if (listName.trim().length > configService.get("limits.max_list_name_length")) {
 		throw new Error(
-			`List name must be ${config.limits.max_list_name_length} characters or less`
+			`List name must be ${configService.get("limits.max_list_name_length")} characters or less`
 		);
 	}
 
@@ -256,9 +260,9 @@ async function createSection(userId, listId, sectionName) {
 	if (!sectionName || typeof sectionName !== "string" || sectionName.trim().length === 0) {
 		throw new Error("Section name is required");
 	}
-	if (sectionName.trim().length > config.limits.max_section_name_length) {
+	if (sectionName.trim().length > configService.get("limits.max_section_name_length")) {
 		throw new Error(
-			`Section name must be ${config.limits.max_section_name_length} characters or less`
+			`Section name must be ${configService.get("limits.max_section_name_length")} characters or less`
 		);
 	}
 
@@ -274,8 +278,10 @@ async function createSection(userId, listId, sectionName) {
 	// Get all sections to check max sections per list
 	const sections = await getAllSections(userId);
 	const listSections = sections.filter((s) => s.list_id === listId);
-	if (listSections.length >= config.limits.max_sections_per_list) {
-		throw new Error(`Maximum ${config.limits.max_sections_per_list} sections per list reached`);
+	if (listSections.length >= configService.get("limits.max_sections_per_list")) {
+		throw new Error(
+			`Maximum ${configService.get("limits.max_sections_per_list")} sections per list reached`
+		);
 	}
 	const sectionId = generateSectionId(sections);
 	const sortOrder = getNextSortOrder(sections, listId);
@@ -397,9 +403,12 @@ async function updateSection(userId, listId, sectionId, sectionName, sortOrder, 
 	}
 
 	// Validate section name if provided
-	if (hasSectionName && sectionName.trim().length > config.limits.max_section_name_length) {
+	if (
+		hasSectionName &&
+		sectionName.trim().length > configService.get("limits.max_section_name_length")
+	) {
 		throw new Error(
-			`Section name must be ${config.limits.max_section_name_length} characters or less`
+			`Section name must be ${configService.get("limits.max_section_name_length")} characters or less`
 		);
 	}
 

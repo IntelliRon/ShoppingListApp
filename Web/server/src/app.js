@@ -1,14 +1,20 @@
 /**
  * Express Application Setup
  * Configures middleware, routes, and error handling
- * 
+ *
+ * NOTE: Configuration is loaded at startup from defaults.json via configService.
+ * IMPORTANT: Middleware like CORS and rate limiting are configured once at startup.
+ * Config changes via the developer API are persisted to disk but won't take effect until server restart.
+ * Per-request checks (auth, item limits, etc.) that call configService.get() on each request
+ * can reflect config changes without restart, but infrastructure settings require a restart to apply.
+ *
  * Automated deployment pipeline is operational and ready for production use
  */
 
 const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
-const config = require("./config/defaults.json");
+const configService = require("./services/configService");
 
 const app = express();
 
@@ -17,14 +23,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // CORS Configuration
-app.use(cors(config.server.cors));
+app.use(cors(configService.get("server.cors")));
 
 // Rate Limiting (per-IP; disabled in test environment)
-if (config.rateLimit.enabled && process.env.NODE_ENV !== "test") {
+if (configService.get("rateLimit.enabled") && process.env.NODE_ENV !== "test") {
 	const limiter = rateLimit({
-		windowMs: config.rateLimit.windowMs,
-		max: config.rateLimit.max,
-		skipSuccessfulRequests: config.rateLimit.skipSuccessfulRequests,
+		windowMs: configService.get("rateLimit.windowMs"),
+		max: configService.get("rateLimit.max"),
+		skipSuccessfulRequests: configService.get("rateLimit.skipSuccessfulRequests"),
 		message: "Too many requests, please try again later.",
 	});
 	app.use("/api/", limiter);
@@ -56,8 +62,11 @@ app.get("/api/v1/health", (req, res) => {
 		const path = require("path");
 
 		// Verify CSV database directory is accessible
-		// Support test database path via environment variable (matching listService path resolution)
-		const dbPath = process.env.TEST_DB_PATH || path.join(__dirname, "..", config.database.path);
+		// app.js is in src/, so use ".." to reach server/ directory
+		// (itemService/listService are in src/services/, so they use "../.." to reach server/)
+		const dbPath =
+			process.env.TEST_DB_PATH ||
+			path.join(__dirname, "..", configService.get("database.path"));
 		fs.accessSync(dbPath, fs.constants.R_OK | fs.constants.W_OK);
 
 		res.status(200).json({
@@ -92,6 +101,7 @@ app.get("/api/v1/health", (req, res) => {
 app.use("/api/v1/auth", require("./routes/auth"));
 app.use("/api/v1/lists", require("./routes/lists"));
 app.use("/api/v1/sync", require("./routes/sync"));
+app.use("/api/v1/developer", require("./routes/developer"));
 
 // 404 Handler
 app.use((req, res) => {

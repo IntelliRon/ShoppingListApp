@@ -35,6 +35,9 @@ coverage/
 # Gradle build cache (machine-specific)
 App/.gradle/
 
+# Configuration (local overrides)
+Web/server/src/config/defaults.json
+
 # Database
 Web/server/db/users.csv
 Web/server/db/sessions.csv
