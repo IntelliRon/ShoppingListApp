@@ -113,13 +113,14 @@ async function updateConfig(req, res) {
 
 		// Validate value types
 		for (const [key, value] of Object.entries(updates)) {
-			if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+			// Reject objects and arrays - only primitives allowed
+			if (typeof value === "object" || value === null) {
 				return res.status(400).json({
 					success: false,
 					data: null,
 					error: {
 						code: "INVALID_VALUE_TYPE",
-						message: `Configuration value for '${key}' must be a primitive type`,
+						message: `Configuration value for '${key}' must be a primitive type (string, number, or boolean)`,
 					},
 					timestamp: new Date().toISOString(),
 				});
@@ -235,6 +236,59 @@ async function updateConfig(req, res) {
 						error: {
 							code: "INVALID_VALUE_RANGE",
 							message: "Configuration limits must be between 1 and 10000",
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+			}
+
+			// String field validations
+			if (key === "server.env") {
+				if (typeof value !== "string") {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_TYPE",
+							message: "server.env must be a string",
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+				const validEnv = ["development", "production", "staging", "test"];
+				if (!validEnv.includes(value)) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_RANGE",
+							message: `server.env must be one of: ${validEnv.join(", ")}`,
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+			}
+
+			if (key === "logging.level") {
+				if (typeof value !== "string") {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_TYPE",
+							message: "logging.level must be a string",
+						},
+						timestamp: new Date().toISOString(),
+					});
+				}
+				const validLevels = ["debug", "info", "warn", "error"];
+				if (!validLevels.includes(value)) {
+					return res.status(400).json({
+						success: false,
+						data: null,
+						error: {
+							code: "INVALID_VALUE_RANGE",
+							message: `logging.level must be one of: ${validLevels.join(", ")}`,
 						},
 						timestamp: new Date().toISOString(),
 					});

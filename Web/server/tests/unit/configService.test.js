@@ -12,7 +12,11 @@ const mockConfig = {
 		port: 3000,
 		env: "development",
 		cors: {
-			origin: ["http://localhost:8080", "http://localhost:3001"],
+			origin: [
+				"http://localhost:8080",
+				"http://localhost:3001",
+				"https://shopping.list.api.intelliron.xyz",
+			],
 			credentials: true,
 		},
 	},
@@ -57,10 +61,18 @@ describe("ConfigService", () => {
 		jest.spyOn(fs, "writeFileSync").mockImplementation(() => {
 			// Don't actually write to file during tests
 		});
+		jest.spyOn(fs, "renameSync").mockImplementation(() => {
+			// Don't actually rename files during tests
+		});
 	});
 
 	afterAll(() => {
 		jest.restoreAllMocks();
+	});
+
+	// Reset singleton state after each test to prevent cross-test contamination
+	afterEach(() => {
+		configService._setConfig(JSON.parse(JSON.stringify(mockConfig)));
 	});
 
 	describe("get()", () => {

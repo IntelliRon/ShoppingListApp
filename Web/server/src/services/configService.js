@@ -211,15 +211,23 @@ function reload() {
 
 /**
  * Persist configuration to defaults.json
- * Uses synchronous write to ensure changes are durable before returning
- * Note: For production use, consider atomic writes (temp file + rename)
- * to prevent corruption if process crashes mid-write
+ * Uses atomic write pattern (temp file + rename) to prevent corruption
+ * if process crashes mid-write. This is especially important for production.
  * Private function used internally
  */
 function _persistConfig() {
 	try {
-		const configPath = path.join(__dirname, "..", "config", "defaults.json");
-		fs.writeFileSync(configPath, JSON.stringify(config, null, "\t"), "utf8");
+		const configDir = path.join(__dirname, "..", "config");
+		const configPath = path.join(configDir, "defaults.json");
+		const tempPath = path.join(configDir, "defaults.json.tmp");
+
+		// Write to temporary file first
+		fs.writeFileSync(tempPath, JSON.stringify(config, null, "\t"), "utf8");
+
+		// Atomically rename temp file to actual config file
+		// This is atomic on most filesystems (rename is typically a single syscall)
+		fs.renameSync(tempPath, configPath);
+
 		// eslint-disable-next-line no-console
 		console.log("[ConfigService] Configuration persisted to defaults.json");
 	} catch (error) {

@@ -84,29 +84,41 @@ describe("itemService", () => {
 		test("createItem should throw error when list item limit reached", async () => {
 			const itemService = require("../../src/services/itemService");
 			const listService = require("../../src/services/listService");
+			const configService = require("../../src/services/configService");
 
 			const userId = "u_test123";
 
-			// Create list
-			await listService.createList(userId, "Test List");
-			const lists = await listService.getAllLists(userId);
-			const list = lists[0];
+			// Override max_items_per_list to smaller value for faster test execution
+			const originalConfig = configService.get();
+			const testConfig = JSON.parse(JSON.stringify(originalConfig));
+			testConfig.limits.max_items_per_list = 10;
+			configService._setConfig(testConfig);
 
-			// Fill up to max items
-			const maxItems = config.limits.max_items_per_list;
-			for (let i = 0; i < maxItems; i++) {
-				await itemService.createItem(userId, list.list_id, `Item ${i + 1}`);
+			try {
+				// Create list
+				await listService.createList(userId, "Test List");
+				const lists = await listService.getAllLists(userId);
+				const list = lists[0];
+
+				// Fill up to max items
+				const maxItems = configService.get("limits.max_items_per_list");
+				for (let i = 0; i < maxItems; i++) {
+					await itemService.createItem(userId, list.list_id, `Item ${i + 1}`);
+				}
+
+				// Verify max reached
+				const items = await itemService.getListItems(userId, list.list_id);
+				expect(items.length).toBe(maxItems);
+
+				// Next create should fail
+				await expect(
+					itemService.createItem(userId, list.list_id, `Item ${maxItems + 1}`)
+				).rejects.toThrow(`Maximum ${maxItems} items per list reached`);
+			} finally {
+				// Restore original config
+				configService._setConfig(originalConfig);
 			}
-
-			// Verify max reached
-			const items = await itemService.getListItems(userId, list.list_id);
-			expect(items.length).toBe(maxItems);
-
-			// Next create should fail
-			await expect(
-				itemService.createItem(userId, list.list_id, `Item ${maxItems + 1}`)
-			).rejects.toThrow(`Maximum ${maxItems} items per list reached`);
-		}, 120000); // 120 second timeout for large item creation
+		}); // Normal timeout sufficient with smaller limit
 
 		test("createItem should succeed for different lists independently", async () => {
 			const itemService = require("../../src/services/itemService");

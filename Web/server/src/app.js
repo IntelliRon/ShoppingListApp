@@ -3,8 +3,10 @@
  * Configures middleware, routes, and error handling
  *
  * NOTE: Configuration is loaded at startup from defaults.json via configService.
- * Consumers (authService, listService, etc.) use configService.get() for runtime access,
- * enabling true runtime config updates when the developer API persists changes to disk.
+ * IMPORTANT: Middleware like CORS and rate limiting are configured once at startup.
+ * Config changes via the developer API are persisted to disk but won't take effect until server restart.
+ * Per-request checks (auth, item limits, etc.) that call configService.get() on each request
+ * can reflect config changes without restart, but infrastructure settings require a restart to apply.
  *
  * Automated deployment pipeline is operational and ready for production use
  */
