@@ -4,14 +4,21 @@
  */
 
 const ConfigModule = (() => {
-	const API_URL = "http://localhost:3000/api/v1/developer";
+	// Get API base URL - derive from current window location or use stored port
+	// This allows the developer UI to work even if server.port is changed
+	function getAPIURL(endpoint = "") {
+		const hostname = window.location.hostname || "localhost";
+		const port = localStorage.getItem("api_port") || 3000;
+		const baseURL = `http://${hostname}:${port}/api/v1/developer`;
+		return endpoint ? `${baseURL}${endpoint}` : baseURL;
+	}
 
 	/**
 	 * Fetch current configuration from server
 	 */
 	async function fetchConfig() {
 		try {
-			const response = await AuthModule.authFetch(`${API_URL}/config`);
+			const response = await AuthModule.authFetch(getAPIURL("/config"));
 
 			if (!response.ok) {
 				throw new Error("Failed to fetch configuration");
@@ -29,7 +36,7 @@ const ConfigModule = (() => {
 	 */
 	async function updateConfig(updates) {
 		try {
-			const response = await AuthModule.authFetch(`${API_URL}/config`, {
+			const response = await AuthModule.authFetch(getAPIURL("/config"), {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -54,7 +61,7 @@ const ConfigModule = (() => {
 	 */
 	async function reloadConfig() {
 		try {
-			const response = await AuthModule.authFetch(`${API_URL}/config/reload`, {
+			const response = await AuthModule.authFetch(getAPIURL("/config/reload"), {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -267,7 +274,7 @@ const ConfigModule = (() => {
 					null,
 					{
 						min: 1,
-						max: 1000,
+						max: 10000,
 						step: 1,
 					}
 				)
@@ -281,7 +288,7 @@ const ConfigModule = (() => {
 					null,
 					{
 						min: 1,
-						max: 1000,
+						max: 10000,
 						step: 1,
 					}
 				)
@@ -309,7 +316,7 @@ const ConfigModule = (() => {
 					null,
 					{
 						min: 1,
-						max: 255,
+						max: 1000,
 						step: 1,
 					}
 				)
@@ -323,7 +330,7 @@ const ConfigModule = (() => {
 					null,
 					{
 						min: 1,
-						max: 255,
+						max: 1000,
 						step: 1,
 					}
 				)
@@ -337,7 +344,7 @@ const ConfigModule = (() => {
 					null,
 					{
 						min: 1,
-						max: 255,
+						max: 1000,
 						step: 1,
 					}
 				)

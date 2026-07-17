@@ -462,6 +462,11 @@ const App = (() => {
 			return;
 		}
 
+		// If server.port is being changed, save it to localStorage for subsequent API calls
+		if (updates["server.port"]) {
+			localStorage.setItem("api_port", updates["server.port"]);
+		}
+
 		const result = await ConfigModule.updateConfig(updates);
 
 		if (!result.success) {

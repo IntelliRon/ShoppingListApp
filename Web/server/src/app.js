@@ -62,7 +62,8 @@ app.get("/api/v1/health", (req, res) => {
 		const path = require("path");
 
 		// Verify CSV database directory is accessible
-		// Support test database path via environment variable (matching listService path resolution)
+		// app.js is in src/, so use ".." to reach server/ directory
+		// (itemService/listService are in src/services/, so they use "../.." to reach server/)
 		const dbPath =
 			process.env.TEST_DB_PATH ||
 			path.join(__dirname, "..", configService.get("database.path"));
