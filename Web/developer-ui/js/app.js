@@ -326,7 +326,7 @@ const App = (() => {
 		if (!statusInfo) return;
 
 		try {
-			const response = await AuthModule.authFetch("http://localhost:3000/api/v1/health");
+			const response = await AuthModule.authFetch("/health");
 			const data = await response.json();
 
 			if (data.success) {

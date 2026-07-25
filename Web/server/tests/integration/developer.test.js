@@ -118,6 +118,12 @@ describe("Developer Endpoints", () => {
 		delete process.env.TEST_USERS_FILE;
 		delete process.env.TEST_BLACKLIST_FILE;
 		delete process.env.TEST_DB_PATH;
+
+		// Clear require cache to prevent other integration tests from reading the temp paths
+		delete require.cache[require.resolve("../../src/app")];
+		delete require.cache[require.resolve("../../src/services/authService")];
+		delete require.cache[require.resolve("../../src/services/csvService")];
+		delete require.cache[require.resolve("../../src/middleware/authMiddleware")];
 	});
 
 	describe("GET /api/v1/developer/config", () => {

@@ -4,7 +4,15 @@
  */
 
 const AuthModule = (() => {
-	const API_URL = "http://localhost:3000/api/v1";
+	// Get API base URL - derive from current window location or use stored port
+	// This allows the developer UI to work even if server.port is changed
+	function getAPIURL(endpoint = "") {
+		const hostname = window.location.hostname || "localhost";
+		const port = localStorage.getItem("api_port") || 3000;
+		const baseURL = `http://${hostname}:${port}/api/v1`;
+		return endpoint ? `${baseURL}${endpoint}` : baseURL;
+	}
+
 	const TOKEN_KEY = "dev_token";
 	const USER_KEY = "dev_user";
 
@@ -13,7 +21,7 @@ const AuthModule = (() => {
 	 */
 	async function login(username, password) {
 		try {
-			const response = await fetch(`${API_URL}/auth/login`, {
+			const response = await fetch(getAPIURL("/auth/login"), {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -56,7 +64,7 @@ const AuthModule = (() => {
 				return { success: true };
 			}
 
-			await fetch(`${API_URL}/auth/logout`, {
+			await fetch(getAPIURL("/auth/logout"), {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -105,12 +113,15 @@ const AuthModule = (() => {
 	}
 
 	/**
-	 * Add authorization header to fetch requests
+	 * Make an authenticated fetch request with dynamic API base URL
 	 */
 	function authFetch(url, options = {}) {
+		// If the URL is a relative endpoint path, prepend the API base URL
+		const fullUrl = url.startsWith("http") ? url : getAPIURL(url);
 		const token = getToken();
+
 		if (!token) {
-			return fetch(url, options);
+			return fetch(fullUrl, options);
 		}
 
 		const headers = {
@@ -118,7 +129,7 @@ const AuthModule = (() => {
 			Authorization: `Bearer ${token}`,
 		};
 
-		return fetch(url, { ...options, headers });
+		return fetch(fullUrl, { ...options, headers });
 	}
 
 	return {
