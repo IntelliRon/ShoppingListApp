@@ -5,11 +5,11 @@
 
 require("dotenv").config();
 const app = require("./app");
-const config = require("./config/defaults.json");
+const configService = require("./services/configService");
 const csvService = require("./services/csvService");
 
-const PORT = process.env.PORT || config.server.port;
-const ENV = process.env.NODE_ENV || config.server.env;
+const PORT = process.env.PORT || configService.get("server.port");
+const ENV = process.env.NODE_ENV || configService.get("server.env");
 
 // Initialize database before starting server
 csvService.initializeDatabase();

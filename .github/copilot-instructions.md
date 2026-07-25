@@ -146,6 +146,105 @@ When adding or modifying a function, follow this strict workflow:
 
 ---
 
+## Commit Message Conventions
+
+All commits must follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification with strict line length limits for GitHub compatibility.
+
+### Format
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### Rules
+
+1. **Subject Line (Title)**
+    - **Maximum 80 characters** (including type, scope, and colon)
+    - Starts with a **type**: `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `perf`, `style`, `ci`, `build`
+    - Optionally includes a **scope** in parentheses (component/file affected)
+    - Use **imperative mood**: "add", "update", "fix" (not "added", "updates", "fixed")
+    - Do **not** end with a period
+    - Example: `feat(auth): add JWT token refresh mechanism`
+
+2. **Body (Optional)**
+    - Separate from subject by a blank line
+    - Maximum **72 characters per line** (GitHub's convention)
+    - Explain _what_ and _why_, not _how_
+    - Use bullet points or paragraphs as needed
+    - Example:
+        ```
+        Implement automatic token refresh to improve UX. Users can now
+        maintain long sessions without manual re-authentication.
+
+        - Add refresh token endpoint
+        - Update auth middleware
+        - Add token expiry handling
+        ```
+
+3. **Footer (Optional)**
+    - Separate from body by a blank line
+    - Reference issues: `Fixes #123` or `Closes #456`
+    - Breaking changes: `BREAKING CHANGE: description`
+    - Example: `Fixes #42`
+
+### Type Reference
+
+| Type       | Use When                                                              |
+| ---------- | --------------------------------------------------------------------- |
+| `feat`     | Adding a new feature                                                  |
+| `fix`      | Fixing a bug                                                          |
+| `chore`    | Updating dependencies, configs, docs, build scripts (no code changes) |
+| `refactor` | Code restructuring without changing functionality                     |
+| `test`     | Adding or updating tests                                              |
+| `docs`     | Documentation changes (README, API docs, comments)                    |
+| `perf`     | Performance improvements                                              |
+| `style`    | Code formatting, linting (no logic changes)                           |
+| `ci`       | CI/CD pipeline changes                                                |
+| `build`    | Build system changes                                                  |
+
+### Examples
+
+✅ **Good**
+
+```
+feat(lists): implement drag-and-drop reordering
+
+Users can now reorder items by dragging within the same list.
+Implemented using React Beautiful DnD library.
+
+Fixes #88
+```
+
+✅ **Good**
+
+```
+fix(auth): prevent token expiry race condition
+```
+
+✅ **Good**
+
+```
+chore: upgrade jest to v29.5.0
+```
+
+❌ **Bad** (too long, lowercase, missing type)
+
+```
+updated the authentication module to add support for refresh tokens and improved error handling
+```
+
+❌ **Bad** (exceeds 80 characters)
+
+```
+feat(shopping-lists-service): add comprehensive logging and monitoring capabilities
+```
+
+---
+
 ## Pre-Push Checklist
 
 Before pushing to GitHub, verify:

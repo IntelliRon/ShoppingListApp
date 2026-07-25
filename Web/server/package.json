@@ -6,6 +6,7 @@
 	"scripts": {
 		"start": "node src/index.js",
 		"dev": "cross-env NODE_ENV=development node src/index.js",
+		"dev:portal": "node src/developer-server.js",
 		"test": "jest --passWithNoTests",
 		"test:unit": "jest tests/unit --passWithNoTests",
 		"test:integration": "jest tests/integration --passWithNoTests",

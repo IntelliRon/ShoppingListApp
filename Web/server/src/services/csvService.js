@@ -11,7 +11,7 @@ const path = require("path");
 const { createObjectCsvWriter } = require("csv-writer");
 const csvParser = require("csv-parser");
 const { AsyncLocalStorage } = require("async_hooks");
-const config = require("../config/defaults.json");
+const configService = require("./configService");
 
 /**
  * AsyncLocalStorage for tracking which file's operation is currently executing
@@ -444,9 +444,14 @@ function updateRecordsWithVerify(filePath, operation) {
  * Initialize database directory structure
  */
 function initializeDatabase() {
-	const dbPath = path.join(__dirname, "..", "..", config.database.path);
+	const dbPath = path.join(__dirname, "..", "..", configService.get("database.path"));
 	// Use the configured shopping lists directory from config, resolving relative to db path
-	const shoppingListsDir = path.join(__dirname, "..", "..", config.database.shopping_lists_dir);
+	const shoppingListsDir = path.join(
+		__dirname,
+		"..",
+		"..",
+		configService.get("database.shopping_lists_dir")
+	);
 
 	ensureDir(dbPath);
 	ensureDir(shoppingListsDir);
