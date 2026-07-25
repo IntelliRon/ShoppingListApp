@@ -23,7 +23,6 @@ function waitForModules() {
 
 const App = (() => {
 	let currentConfig = null;
-	let lastStatusReloadTime = 0;
 	const STATUS_RELOAD_COOLDOWN = 5000; // 5 seconds
 	let statusCooldownTimer = null;
 
