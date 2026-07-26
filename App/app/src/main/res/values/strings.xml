@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Shopping List App</string>
+    <!-- Login Activity Strings -->
+    <string name="loginTitle">Shopping List</string>
+    <string name="loginSubtitle">Log in to your account</string>
+    <string name="loginUsernameLabel">Username</string>
+    <string name="loginUsernameHint">Enter your username</string>
+    <string name="loginPasswordLabel">Password</string>
+    <string name="loginPasswordHint">Enter your password</string>
+    <string name="loginButton">Log in</string>
+    <string name="loginPasswordToggleDescription">Toggle visibility of the password dialogue</string>
+    <!-- Register Activity Strings -->
+    <string name="registerTitle">Shopping List</string>
+    <string name="registerSubtitle">Create a new account</string>
+    <string name="registerButton">Register</string>
+    <string name="registerUsernameLabel">Username</string>
+    <string name="registerUsernameHint">Enter a username</string>
+    <string name="registerEmailLabel">Email</string>
+    <string name="registerEmailHint">Enter your email</string>
+    <string name="registerPasswordLabel">Password</string>
+    <string name="registerPasswordHint">Enter a password</string>
+    <string name="registerPasswordToggleDescription">Toggle visibility of the password dialogue</string>
+    <string name="registerConfirmPasswordLabel">Confirm Password</string>
+    <string name="registerConfirmPasswordHint">Re-enter your password</string>
+    <string name="registerConfirmPasswordToggleDescription">Toggle visibility of the confirm password dialogue</string>
+</resources>

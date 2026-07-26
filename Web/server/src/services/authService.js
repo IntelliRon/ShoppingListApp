@@ -202,12 +202,15 @@ async function registerUser(username, password, email) {
 	// Generate token
 	const token = generateToken(userId);
 
+	const expiresIn = configService.get("auth.session_expiry_days") * 24 * 60 * 60; // seconds
+
 	return {
 		user_id: userId,
 		username,
 		email: normalizedEmail,
 		token,
 		created_at: user.created_at,
+		expires_in: expiresIn,
 	};
 }
 

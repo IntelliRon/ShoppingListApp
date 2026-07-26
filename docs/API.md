@@ -155,7 +155,8 @@ Register a new user account.
 		"username": "john_doe",
 		"email": "john@example.com",
 		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-		"created_at": "2026-07-10T15:30:00Z"
+		"created_at": "2026-07-10T15:30:00Z",
+		"expires_in": 2592000
 	},
 	"timestamp": "2026-07-10T15:30:00Z"
 }
